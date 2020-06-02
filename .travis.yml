@@ -18,4 +18,4 @@ jobs:
         - pip install poetry
         - poetry install -v
       script:
-        - flake8
+        - pylint server
