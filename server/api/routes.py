@@ -1,52 +1,27 @@
-from flask import Flask, request
-from flask_restful import Resource, reqparse, marshal_with, fields, abort
-from flask_sqlalchemy import SQLAlchemy
+from flask import request, make_response, jsonify
+from server.api import app
+from server.api.models import User
 
-from server.api import app, api_
-# from flaskblog.models import
+from werkzeug.security import check_password_hash
 
-ENTRIES = {
-    'entry1': {'entry': 'build an API'},
-    'entry2': {'entry': '?????'},
-    'entry3': {'entry': 'profit!'},
-}
+@app.route('/login', methods=["GET"])
+def login():
+    auth = request.authorization
 
-def abort_if_entry_doesnt_exist(entry_id):
-    if entry_id not in ENTRIES:
-        abort(404, message=f'Entry {entry_id} does not exist!')
+    if not auth or not auth.username or not auth.password:
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login required"'})
 
-parser = reqparse.RequestParser()
-parser.add_argument('entry')
+    user = User.query.filter_by(user_name=auth.username).first()
 
-class EntriesList(Resource):
-    def get(self):
-        return ENTRIES
+    if not user:
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login required"'})
 
-    def post(self):
-        args = parser.parse_args()
-        entry_id = int(max(ENTRIES.keys()).lstrip('entry')) + 1
-        entry_id = 'entry%i' % entry_id
-        ENTRIES[entry_id] = {'entry': args['entry']}
-        return ENTRIES[entry_id], 201
+    if not check_password_hash(user.password, auth.password):
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login required"'})
 
-class Entry(Resource):
-    def get(self, entry_id):
-        abort_if_entry_doesnt_exist(entry_id)
-        return ENTRIES[entry_id]
+    token = user.generate_auth_token(user.public_id)
+    return jsonify({'token': token})
 
-    def delete(self, entry_id):
-        abort_if_entry_doesnt_exist(entry_id)
-        del ENTRIES[entry_id]
-        return 'Deleted!', 204
-
-    def put(self, entry_id):
-        args = parser.parse_args()
-        entry = {'entry': args['entry']}
-        ENTRIES[entry_id] = entry
-        return entry, 201
-
-api_.add_resource(Entry, '/entries/<entry_id>')
-api_.add_resource(EntriesList, '/entries')
 
 if __name__ == '__main__':
     app.run(debug=True)
