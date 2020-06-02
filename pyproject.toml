@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "mneme-server"
+version = "0.1.0"
+description = "Self hosted journal keeping app"
+authors = ["Danya Rose <Danya.Scout@gmail.com>"]
+license = "GPL-3.0-only"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+flask = "^1.1.2"
+
+[tool.poetry.dev-dependencies]
+autopep8 = "^1.5.3"
+pylint = "^2.5.2"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
