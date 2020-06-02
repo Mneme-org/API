@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta
+
+from server.api import app
+
 import jwt
 
 
@@ -9,14 +12,10 @@ def generate_auth_token(pub_id):
     """
     try:
         payload = {
-            'exp': datetime.utcnow() + timedelta(minutes=35),
-            'iat': datetime.utcnow(),
-            'sub': pub_id
+            'public_id': pub_id,
+            'exp': datetime.now() + timedelta(minutes=30)
         }
-        return jwt.encode(
-            payload,
-            app.config.get('SECRET_KEY'),
-            algorithm='HS256'
-        )
+        token = jwt.encode(payload, app.config['SECRET_KEY'])
+        return str(token)
     except Exception as e:
         return e
