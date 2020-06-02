@@ -1,9 +1,9 @@
-import datetime
+from server.api import db
 
-from api import db
-import jwt
 
 class User(db.Model):
+    __tablename__ = 'user'
+
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.Integer, nullable=False, unique=True)
     username = db.Column(db.Text, nullable=False)
@@ -11,27 +11,10 @@ class User(db.Model):
 
     journals = db.relationship('Journal', backref='user', lazy=True)
 
-    def generate_auth_token(self, pub_id):
-        """
-        Generates the Auth Token
-        :return: string
-        """
-        try:
-            payload = {
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, seconds=5),
-                'iat': datetime.datetime.utcnow(),
-                'sub': pub_id
-            }
-            return jwt.encode(
-                payload,
-                app.config.get('SECRET_KEY'),
-                algorithm='HS256'
-            )
-        except Exception as e:
-            return e
-
 
 class Journal(db.Model):
+    __tablename__ = 'journal'
+
     id = db.Column(db.Integer, primary_key=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     name = db.Column(db.Text, nullable=False)
@@ -40,6 +23,8 @@ class Journal(db.Model):
 
 
 class Entry(db.Model):
+    __tablename__ = 'entry'
+
     id = db.Column(db.Integer, primary_key=True)
     jrnl_id = db.Column(db.Integer, db.ForeignKey('journal.id'))
     short = db.Column(db.Text, nullable=False)
@@ -51,5 +36,8 @@ class Entry(db.Model):
 
 
 class Keyword(db.Model):
+    __tablename__ = 'keyword'
+
+    id = db.Column(db.Integer, primary_key=True)
     entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'))
     word = db.Column(db.Text, nullable=False)

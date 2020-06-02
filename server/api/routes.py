@@ -1,6 +1,7 @@
 from flask import request, make_response, jsonify
 from server.api import app
 from server.api.models import User
+from server.api.utils import generate_auth_token
 
 from werkzeug.security import check_password_hash
 
@@ -19,7 +20,7 @@ def login():
     if not check_password_hash(user.password, auth.password):
         return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login required"'})
 
-    token = user.generate_auth_token(user.public_id)
+    token = generate_auth_token(user.public_id)
     return jsonify({'token': token})
 
 
