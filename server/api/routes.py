@@ -3,7 +3,6 @@ import uuid
 from server.api import app, db
 from server.api.models import User
 from server.api.utils import generate_auth_token
-from werkzeug.security import check_password_hash
 
 from flask import request, make_response, jsonify
 
