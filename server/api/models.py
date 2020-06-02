@@ -1,3 +1,5 @@
+import datetime
+
 from api import db
 import jwt
 
@@ -9,7 +11,7 @@ class User(db.Model):
 
     journals = db.relationship('Journal', backref='user', lazy=True)
 
-    def encode_auth_token(self, user_id):
+    def generate_auth_token(self, pub_id):
         """
         Generates the Auth Token
         :return: string
@@ -18,7 +20,7 @@ class User(db.Model):
             payload = {
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, seconds=5),
                 'iat': datetime.datetime.utcnow(),
-                'sub': user_id
+                'sub': pub_id
             }
             return jwt.encode(
                 payload,
