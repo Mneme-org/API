@@ -17,5 +17,6 @@ jobs:
         - pip install --upgrade pip
         - pip install poetry
         - poetry install -v
+        - poetry install flake8
       script:
         - flake8
