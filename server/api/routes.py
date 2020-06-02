@@ -1,52 +1,47 @@
-from flask import Flask, request
-from flask_restful import Resource, reqparse, marshal_with, fields, abort
-from flask_sqlalchemy import SQLAlchemy
+import uuid
 
-from server.api import app, api_
-# from flaskblog.models import
+from server.api import app, db
+from server.api.models import User
+from server.api.utils import generate_auth_token
 
-ENTRIES = {
-    'entry1': {'entry': 'build an API'},
-    'entry2': {'entry': '?????'},
-    'entry3': {'entry': 'profit!'},
-}
+from flask import request, make_response, jsonify
 
-def abort_if_entry_doesnt_exist(entry_id):
-    if entry_id not in ENTRIES:
-        abort(404, message=f'Entry {entry_id} does not exist!')
 
-parser = reqparse.RequestParser()
-parser.add_argument('entry')
+@app.route('/login', methods=["GET"])
+def login():
+    auth = request.authorization
 
-class EntriesList(Resource):
-    def get(self):
-        return ENTRIES
+    if not auth or not auth.username or not auth.password:
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login required"'})
 
-    def post(self):
-        args = parser.parse_args()
-        entry_id = int(max(ENTRIES.keys()).lstrip('entry')) + 1
-        entry_id = 'entry%i' % entry_id
-        ENTRIES[entry_id] = {'entry': args['entry']}
-        return ENTRIES[entry_id], 201
+    user = User.query.filter_by(username=auth.username).first()
 
-class Entry(Resource):
-    def get(self, entry_id):
-        abort_if_entry_doesnt_exist(entry_id)
-        return ENTRIES[entry_id]
+    if not user:
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login required"'})
 
-    def delete(self, entry_id):
-        abort_if_entry_doesnt_exist(entry_id)
-        del ENTRIES[entry_id]
-        return 'Deleted!', 204
+    # Because the api will probably be receiving already hashed passwords
+    # This is not final
+    if user.password == auth.password:
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic-realm="Login required"'})
 
-    def put(self, entry_id):
-        args = parser.parse_args()
-        entry = {'entry': args['entry']}
-        ENTRIES[entry_id] = entry
-        return entry, 201
+    token = generate_auth_token(user.public_id)
+    return jsonify({'token': token})
 
-api_.add_resource(Entry, '/entries/<entry_id>')
-api_.add_resource(EntriesList, '/entries')
+
+@app.route('/user', methods=['POST'])
+def create_user():
+    print(request.get_json())
+    print(request.data)
+    data = request.get_json(force=True)
+
+    public_id = str(uuid.uuid4())
+    user = User(public_id=public_id, username=data['username'], password=data['password'])
+
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({'status': '200'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
