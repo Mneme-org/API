@@ -6,7 +6,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.Integer, nullable=False, unique=True)
-    username = db.Column(db.Text, nullable=False)
+    username = db.Column(db.Text, nullable=False, unique=True)
     password = db.Column(db.Text, nullable=False)
 
     journals = db.relationship('Journal', backref='user', lazy=True)
