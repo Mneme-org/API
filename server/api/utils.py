@@ -19,7 +19,7 @@ def generate_auth_token(pub_id):
             'exp': datetime.now() + timedelta(minutes=30)
         }
         token = jwt.encode(payload, app.config['SECRET_KEY'])
-        return str(token)
+        return token.decode('UTF-8')
     except Exception as e:
         return e
 
