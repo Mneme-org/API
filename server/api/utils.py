@@ -1,8 +1,21 @@
 from datetime import datetime, timedelta
 
-from . import crud
-from . import SECRET_KEY, pwd_context, ALGORITHM
 import jwt
+from jwt.exceptions import PyJWTError
+from fastapi import Depends, status, HTTPException
+from sqlalchemy.orm import Session
+
+from . import crud, schemas, models
+from . import SECRET_KEY, pwd_context, ALGORITHM, oauth2_scheme
+from .database import SessionLocal
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 def generate_auth_token(pub_id: str, expires_delta: timedelta = None):
@@ -16,31 +29,35 @@ def generate_auth_token(pub_id: str, expires_delta: timedelta = None):
 
     return encoded_token
 
-# def token_required(f):
-#     @wraps(f)
-#     def decorated(*args, **kwargs):
-#         token = request.headers.get('x-access-token', None)
-#
-#         if token is None:
-#             return jsonify({'message': 'Token is required!'}), 401
-#
-#         try:
-#             data = jwt.decode(token, SECRET_KEY)
-#             user = crud.get_user_by_pub_id(db, data['public_id'])
-#         except:
-#             return jsonify({'message': 'Token is invalid'}), 401
-#
-#         if not user:
-#             return jsonify({'message': 'Token is invalid'}), 401
-#
-#         return f(user, *args, **kwargs)
-#
-#     return decorated
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        public_id: str = payload.get("sub")
+
+        if public_id is None:
+            raise credentials_exception
+        else:
+            token_data = schemas.TokenData(public_id=public_id)
+    except PyJWTError:
+        raise credentials_exception
+
+    user = crud.get_user_by_pub_id(db, token_data.public_id)
+    if user is None:
+        raise credentials_exception
+    else:
+        return user
+
 
 def auth_user(username, password, db):
-    """returns False if not authenticated, else returns user"""
+    """returns False if not authenticated, else returns the models.User"""
     user = crud.get_user_by_username(db, username)
-    if  user is None:
+    if user is None:
         return False
 
     if pwd_context.verify(password, user.hashed_password):
