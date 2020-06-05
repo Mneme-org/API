@@ -24,11 +24,16 @@ class Entry(BaseModel):
         orm_mode = True
 
 
-class Journal(BaseModel):
-    id: int
-    pub_user_id: int
+class JournalBase(BaseModel):
     name: str
 
+
+class JournalCreate(JournalBase):
+    pass
+
+
+class Journal(JournalBase):
+    id: int
     entries: List[Entry] = []
 
     class Config:
