@@ -134,3 +134,4 @@ dmypy.json
 /server/api/site.db
 poetry.lock
 server/api/mneme.db
+server/api/mneme.db
