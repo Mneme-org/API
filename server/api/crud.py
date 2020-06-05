@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from . import schemas
-from .models import User
+from .models import User, Journal
 from . import pwd_context
 
 
@@ -31,3 +31,22 @@ def create_user(db: Session, user: schemas.UserCreate) -> User:
     db.refresh(new_user)
 
     return new_user
+
+
+def get_jrnl(db: Session, pub_user_id: str, jrnl: schemas.JournalCreate) -> Optional[Journal]:
+    return db.query(Journal).filter(Journal.name == jrnl.name, pub_user_id == pub_user_id).first()
+
+
+def create_journal(db: Session, pub_user_id: str, jrnl: schemas.JournalCreate) -> Journal:
+    name = jrnl.name
+    new_jrnl = Journal(pub_user_id=pub_user_id, name=name)
+
+    db.add(new_jrnl)
+    db.commit()
+    db.refresh(new_jrnl)
+
+    return new_jrnl
+
+
+def get_journals_for(db: Session, user: User, skip: int = 0, limit: int = 100):
+    return db.query(Journal).filter(Journal.pub_user_id == user.public_id).offset(skip).limit(limit).all()
