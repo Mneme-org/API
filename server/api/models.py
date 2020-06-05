@@ -1,43 +1,52 @@
-from server.api import db
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
+from .database import Base
 
 
-class User(db.Model):
-    __tablename__ = 'user'
+class User(Base):
+    __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True)
-    public_id = db.Column(db.Integer, nullable=False, unique=True)
-    username = db.Column(db.Text, nullable=False, unique=True)
-    password = db.Column(db.Text, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    public_id = Column(String, index=True)
 
-    journals = db.relationship('Journal', backref='user', lazy=True)
+    username = Column(String, unique=True)
+    hashed_password = Column(String, nullable=False)
 
-
-class Journal(db.Model):
-    __tablename__ = 'journal'
-
-    id = db.Column(db.Integer, primary_key=True)
-    u_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    name = db.Column(db.Text, nullable=False)
-
-    entries = db.relationship('Entry', backref='journal', lazy=True)
+    journals = relationship("Journal", back_populates="owner")
 
 
-class Entry(db.Model):
-    __tablename__ = 'entry'
+class Journal(Base):
+    __tablename__ = 'journals'
 
-    id = db.Column(db.Integer, primary_key=True)
-    jrnl_id = db.Column(db.Integer, db.ForeignKey('journal.id'))
-    short = db.Column(db.Text, nullable=False)
-    long = db.Column(db.Text, nullable=True)
+    id = Column(Integer, primary_key=True)
+    u_id = Column(Integer, ForeignKey('users.id'))
+    name = Column(String, nullable=False)
+
+    owner = relationship('User', back_populates='journals')
+    entries = relationship('Entry', back_populates='journal')
+
+
+class Entry(Base):
+    __tablename__ = 'entries'
+
+    id = Column(Integer, primary_key=True)
+    jrnl_id = Column(Integer, ForeignKey('journals.id'))
+    short = Column(String, nullable=False)
+    long = Column(String, nullable=True)
+
     # TODO Figure out a better way to store dates, maybe as strings?
-    date = db.Column(db.Integer, nullable=False)
+    date = Column(Integer, nullable=False)
 
-    keywords = db.relationship('Keyword', backref='entry', lazy=True)
+    journal = relationship('Journal', back_populates='entries')
+    keywords = relationship('Keyword', back_populates='entry')
 
 
-class Keyword(db.Model):
+class Keyword(Base):
     __tablename__ = 'keyword'
 
-    id = db.Column(db.Integer, primary_key=True)
-    entry_id = db.Column(db.Integer, db.ForeignKey('entry.id'))
-    word = db.Column(db.Text, nullable=False)
+    id = Column(Integer, primary_key=True)
+    entry_id = Column(Integer, ForeignKey('entries.id'))
+    word = Column(String, nullable=False)
+
+    entry = relationship('Entry', back_populates='keywords')

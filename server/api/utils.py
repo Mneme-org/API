@@ -1,45 +1,49 @@
 from datetime import datetime, timedelta
-from functools import wraps
 
-from server.api import app
-from server.api.models import User
-
-from flask import request, jsonify
+from . import crud
+from . import SECRET_KEY, pwd_context, ALGORITHM
 import jwt
 
 
-def generate_auth_token(pub_id):
-    """
-    Generates the Auth Token
-    :return: string
-    """
-    try:
-        payload = {
-            'public_id': pub_id,
-            'exp': datetime.now() + timedelta(minutes=30)
-        }
-        token = jwt.encode(payload, app.config['SECRET_KEY'])
-        return token.decode('UTF-8')
-    except Exception as e:
-        return e
+def generate_auth_token(pub_id: str, expires_delta: timedelta = None):
+    expires = datetime.utcnow() + (expires_delta or timedelta(minutes=30))
 
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('x-access-token', None)
+    payload = {
+        'public_id': pub_id,
+        'exp': expires
+    }
+    encoded_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-        if token is None:
-            return jsonify({'message': 'Token is required!'}), 401
+    return encoded_token
 
-        try:
-            data = jwt.decode(token, app.config['SECRET_KEY'])
-            user = User.query.filter_by(public_id=data['public_id']).first()
-        except:
-            return jsonify({'message': 'Token is invalid'}), 401
+# def token_required(f):
+#     @wraps(f)
+#     def decorated(*args, **kwargs):
+#         token = request.headers.get('x-access-token', None)
+#
+#         if token is None:
+#             return jsonify({'message': 'Token is required!'}), 401
+#
+#         try:
+#             data = jwt.decode(token, SECRET_KEY)
+#             user = crud.get_user_by_pub_id(db, data['public_id'])
+#         except:
+#             return jsonify({'message': 'Token is invalid'}), 401
+#
+#         if not user:
+#             return jsonify({'message': 'Token is invalid'}), 401
+#
+#         return f(user, *args, **kwargs)
+#
+#     return decorated
 
-        if not user:
-            return jsonify({'message': 'Token is invalid'}), 401
+def auth_user(username, password, db):
+    """returns False if not authenticated, else returns user"""
+    user = crud.get_user_by_username(db, username)
+    if  user is None:
+        return False
 
-        return f(user, *args, **kwargs)
-
-    return decorated
+    if pwd_context.verify(password, user.hashed_password):
+        return user
+    else:
+        return False
