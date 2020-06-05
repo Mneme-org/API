@@ -38,8 +38,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        public_id: str = payload.get("sub")
-
+        public_id: str = payload.get("public_id")
         if public_id is None:
             raise credentials_exception
         else:
@@ -54,7 +53,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         return user
 
 
-def auth_user(username, password, db):
+def auth_user(db: Session, username: str, password: str):
     """returns False if not authenticated, else returns the models.User"""
     user = crud.get_user_by_username(db, username)
     if user is None:
