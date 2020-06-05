@@ -7,7 +7,7 @@ from . import models, schemas
 from . import pwd_context
 
 
-def get_user_by_pub_id(db: Session, pub_id: int) -> Optional[models.User]:
+def get_user_by_pub_id(db: Session, pub_id: str) -> Optional[models.User]:
     return db.query(models.User).filter(models.User.public_id == pub_id).first()
 
 
