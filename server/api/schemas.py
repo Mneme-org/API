@@ -24,11 +24,16 @@ class Entry(BaseModel):
         orm_mode = True
 
 
-class Journal(BaseModel):
-    id: int
-    pub_user_id: int
+class JournalBase(BaseModel):
     name: str
 
+
+class JournalCreate(JournalBase):
+    pass
+
+
+class Journal(JournalBase):
+    id: int
     entries: List[Entry] = []
 
     class Config:
@@ -56,3 +61,6 @@ class Token(BaseModel):
     access_token: str
     # Give access to the person who has that token, no questions asked
     token_type: str = "bearer"
+
+class TokenData(BaseModel):
+    public_id: str

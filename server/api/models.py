@@ -20,7 +20,7 @@ class Journal(Base):
     __tablename__ = 'journals'
 
     id = Column(Integer, primary_key=True)
-    u_id = Column(Integer, ForeignKey('users.id'))
+    pub_user_id = Column(String, ForeignKey('users.id'))
     name = Column(String, nullable=False)
 
     owner = relationship('User', back_populates='journals')
