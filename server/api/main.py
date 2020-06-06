@@ -45,7 +45,7 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(utils.get_
 @app.post('/journals/', response_model=schemas.Journal)
 def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(utils.get_current_user),
                    db: Session = Depends(utils.get_db)):
-    db_jrnl = crud.get_jrnl(db, user.public_id, jrnl)
+    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl.name.lower())
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")
     else:
