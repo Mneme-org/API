@@ -19,12 +19,19 @@ class Keyword(KeywordBase):
         orm_mode = True
 
 
-class Entry(BaseModel):
-    id: int
-    jrnl_id: int
+class EntryBase(BaseModel):
     short: str
-    long: str
+    long: str = ""
     date: str
+    jrnl_id: int
+
+
+class EntryCreate(EntryBase):
+    keywords: List[KeywordCreate] = []
+
+
+class Entry(EntryBase):
+    id: int
     keywords: List[Keyword] = []
 
     class Config:
