@@ -52,6 +52,16 @@ def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(util
         return crud.create_journal(db, user.public_id, jrnl)
 
 
+@app.get("/journals/{jrnl_name}/", response_model=schemas.Journal)
+def read_journal(jrnl_name: str, user: models.User = Depends(utils.get_current_user),
+                 db: Session = Depends(utils.get_db)):
+    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name.lower())
+    if db_jrnl is None:
+        raise HTTPException(status_code=400, detail="This journal doesn't exists for this user")
+    else:
+        return db_jrnl
+
+
 @app.get("/journals/", response_model=List[schemas.Journal])
 def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(utils.get_current_user),
                   db: Session = Depends(utils.get_db)):
