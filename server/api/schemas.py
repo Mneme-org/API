@@ -3,10 +3,17 @@ from typing import List
 from pydantic import BaseModel
 
 
-class Keyword(BaseModel):
+class KeywordBase(BaseModel):
+    word: str
+
+
+class KeywordCreate(KeywordBase):
+    pass
+
+
+class Keyword(KeywordBase):
     id: int
     entry_id: int
-    word: str
 
     class Config:
         orm_mode = True
