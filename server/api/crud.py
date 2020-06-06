@@ -37,6 +37,10 @@ def get_jrnl_by_name(db: Session, pub_user_id: str, jrnl_name: str) -> Optional[
     return db.query(Journal).filter(Journal.name == jrnl_name, pub_user_id == pub_user_id).first()
 
 
+def get_jrnl_by_id(db: Session, pub_user_id: str, jrnl_id: int) -> Optional[Journal]:
+    return db.query(Journal).filter(Journal.id == jrnl_id, pub_user_id == pub_user_id).first()
+
+
 def create_journal(db: Session, pub_user_id: str, jrnl: schemas.JournalCreate) -> Journal:
     name = jrnl.name
     new_jrnl = Journal(pub_user_id=pub_user_id, name=name)
