@@ -45,11 +45,21 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(utils.get_
 @app.post('/journals/', response_model=schemas.Journal)
 def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(utils.get_current_user),
                    db: Session = Depends(utils.get_db)):
-    db_jrnl = crud.get_jrnl(db, user.public_id, jrnl)
+    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl.name.lower())
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")
     else:
         return crud.create_journal(db, user.public_id, jrnl)
+
+
+@app.get("/journals/{jrnl_name}/", response_model=schemas.Journal)
+def read_journal(jrnl_name: str, user: models.User = Depends(utils.get_current_user),
+                 db: Session = Depends(utils.get_db)):
+    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name.lower())
+    if db_jrnl is None:
+        raise HTTPException(status_code=400, detail="This journal doesn't exists for this user")
+    else:
+        return db_jrnl
 
 
 @app.get("/journals/", response_model=List[schemas.Journal])
@@ -57,3 +67,17 @@ def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(u
                   db: Session = Depends(utils.get_db)):
     jrnls = crud.get_journals_for(db, user, skip=skip, limit=limit)
     return jrnls
+
+
+@app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry)
+def create_entry(*, jrnl_name: str, user: models.User = Depends(utils.get_current_user), entry: schemas.EntryCreate,
+                 db: Session = Depends((utils.get_db))):
+    db_jrnl = crud.get_jrnl_by_id(db, user.public_id, entry.jrnl_id)
+    if db_jrnl is None:
+        raise HTTPException(status_code=400, detail="This journal id doesn't exists for this user")
+
+    if db_jrnl.name.lower() != jrnl_name.lower():
+        raise HTTPException(status_code=400, detail="The journal name doesn't much this id's journal name")
+
+    return crud.create_entry(db, entry)
+

@@ -35,8 +35,7 @@ class Entry(Base):
     short = Column(String, nullable=False)
     long = Column(String, nullable=True)
 
-    # TODO Figure out a better way to store dates, maybe as strings?
-    date = Column(Integer, nullable=False)
+    date = Column(String, nullable=False)
 
     journal = relationship('Journal', back_populates='entries')
     keywords = relationship('Keyword', back_populates='entry')

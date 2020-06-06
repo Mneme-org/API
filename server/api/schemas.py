@@ -3,21 +3,35 @@ from typing import List
 from pydantic import BaseModel
 
 
-class Keyword(BaseModel):
+class KeywordBase(BaseModel):
+    word: str
+
+
+class KeywordCreate(KeywordBase):
+    pass
+
+
+class Keyword(KeywordBase):
     id: int
     entry_id: int
-    word: str
 
     class Config:
         orm_mode = True
 
 
-class Entry(BaseModel):
-    id: int
-    jrnl_id: int
+class EntryBase(BaseModel):
     short: str
-    long: str
+    long: str = ""
     date: str
+    jrnl_id: int
+
+
+class EntryCreate(EntryBase):
+    keywords: List[KeywordCreate] = []
+
+
+class Entry(EntryBase):
+    id: int
     keywords: List[Keyword] = []
 
     class Config:

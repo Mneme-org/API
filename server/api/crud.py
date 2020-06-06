@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from . import schemas
-from .models import User, Journal
+from .models import User, Journal, Entry, Keyword
 from . import pwd_context
 
 
@@ -33,8 +33,12 @@ def create_user(db: Session, user: schemas.UserCreate) -> User:
     return new_user
 
 
-def get_jrnl(db: Session, pub_user_id: str, jrnl: schemas.JournalCreate) -> Optional[Journal]:
-    return db.query(Journal).filter(Journal.name == jrnl.name, pub_user_id == pub_user_id).first()
+def get_jrnl_by_name(db: Session, pub_user_id: str, jrnl_name: str) -> Optional[Journal]:
+    return db.query(Journal).filter(Journal.name == jrnl_name, pub_user_id == pub_user_id).first()
+
+
+def get_jrnl_by_id(db: Session, pub_user_id: str, jrnl_id: int) -> Optional[Journal]:
+    return db.query(Journal).filter(Journal.id == jrnl_id, pub_user_id == pub_user_id).first()
 
 
 def create_journal(db: Session, pub_user_id: str, jrnl: schemas.JournalCreate) -> Journal:
@@ -50,3 +54,19 @@ def create_journal(db: Session, pub_user_id: str, jrnl: schemas.JournalCreate) -
 
 def get_journals_for(db: Session, user: User, skip: int = 0, limit: int = 100):
     return db.query(Journal).filter(Journal.pub_user_id == user.public_id).offset(skip).limit(limit).all()
+
+
+def create_entry(db: Session, entry: schemas.EntryCreate) -> Entry:
+    new_entry = Entry(jrnl_id=entry.jrnl_id, short=entry.short, long=entry.long, date=entry.date)
+
+    db.add(new_entry)
+    db.commit()
+    db.refresh(new_entry)
+
+    for kw in entry.keywords:
+        new_kw = Keyword(entry_id=new_entry.id, word=kw.word)
+        db.add(new_kw)
+        db.commit()
+        db.refresh(new_kw)
+
+    return new_entry
