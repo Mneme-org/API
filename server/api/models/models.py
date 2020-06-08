@@ -29,7 +29,7 @@ class Journal(Base):
 class Entry(Base):
     __tablename__ = 'entries'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     jrnl_id = Column(Integer, ForeignKey('journals.id'))
     short = Column(String, nullable=False)
     long = Column(String, nullable=True)
