@@ -6,15 +6,16 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from . import app, ACCESS_TOKEN_EXPIRE_MINUTES
-from . import crud, models, schemas, utils
+from . import crud, models, schemas
+from .utils import get_db, get_current_user, auth_user, generate_auth_token
 from .database import engine
 
 models.Base.metadata.create_all(bind=engine)
 
 
 @app.post("/token", response_model=schemas.Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(utils.get_db)):
-    user = utils.auth_user(db, form_data.username, form_data.password)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = auth_user(db, form_data.username, form_data.password)
 
     if not user:
         raise HTTPException(
@@ -23,12 +24,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    encoded_token = utils.generate_auth_token(user.public_id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    encoded_token = generate_auth_token(user.public_id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": encoded_token}
 
 
 @app.post("/users/", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(utils.get_db)):
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_username(db, name=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -37,14 +38,14 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(utils.get_db)):
 
 
 @app.get("/users/", response_model=List[schemas.User])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(utils.get_db)):
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
 
 
 @app.post('/journals/', response_model=schemas.Journal)
-def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(utils.get_current_user),
-                   db: Session = Depends(utils.get_db)):
+def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user),
+                   db: Session = Depends(get_db)):
     db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl.name.lower())
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")
@@ -53,25 +54,25 @@ def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(util
 
 
 @app.get("/journals/{jrnl_name}/", response_model=schemas.Journal)
-def read_journal(jrnl_name: str, user: models.User = Depends(utils.get_current_user),
-                 db: Session = Depends(utils.get_db)):
+def read_journal(jrnl_name: str, user: models.User = Depends(get_current_user),
+                 db: Session = Depends(get_db)):
     db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name.lower())
     if db_jrnl is None:
-        raise HTTPException(status_code=400, detail="This journal doesn't exists for this user")
+        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
     else:
         return db_jrnl
 
 
 @app.get("/journals/", response_model=List[schemas.Journal])
-def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(utils.get_current_user),
-                  db: Session = Depends(utils.get_db)):
+def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(get_current_user),
+                  db: Session = Depends(get_db)):
     jrnls = crud.get_journals_for(db, user, skip=skip, limit=limit)
     return jrnls
 
 
 @app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry)
-def create_entry(*, jrnl_name: str, user: models.User = Depends(utils.get_current_user), entry: schemas.EntryCreate,
-                 db: Session = Depends(utils.get_db)):
+def create_entry(*, jrnl_name: str, user: models.User = Depends(get_current_user), entry: schemas.EntryCreate,
+                 db: Session = Depends(get_db)):
     db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name.lower())
     if db_jrnl is None:
         raise HTTPException(status_code=400, detail="This journal doesn't exists for this user")
