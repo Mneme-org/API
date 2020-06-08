@@ -8,7 +8,6 @@ class EntryBase(BaseModel):
     short: str
     long: str = ""
     date: str
-    jrnl_id: int
 
 
 class EntryCreate(EntryBase):
@@ -17,6 +16,7 @@ class EntryCreate(EntryBase):
 
 class Entry(EntryBase):
     id: int
+    jrnl_id: int
     keywords: List[Keyword] = []
 
     class Config:

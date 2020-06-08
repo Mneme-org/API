@@ -72,11 +72,8 @@ def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(u
 @app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry)
 def create_entry(*, jrnl_name: str, user: models.User = Depends(utils.get_current_user), entry: schemas.EntryCreate,
                  db: Session = Depends(utils.get_db)):
-    db_jrnl = crud.get_jrnl_by_id(db, user.public_id, entry.jrnl_id)
+    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name.lower())
     if db_jrnl is None:
-        raise HTTPException(status_code=400, detail="This journal id doesn't exists for this user")
-
-    if db_jrnl.name.lower() != jrnl_name.lower():
-        raise HTTPException(status_code=400, detail="The journal name doesn't much this id's journal name")
+        raise HTTPException(status_code=400, detail="This journal doesn't exists for this user")
 
     return crud.create_entry(db, entry)
