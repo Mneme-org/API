@@ -1,4 +1,4 @@
-# mneme-server
+# mneme-server [![Build Status](https://travis-ci.org/Mneme-org/mneme-server.svg?branch=master)](https://travis-ci.org/Mneme-org/mneme-server)
 
 The main mneme app is split in two parts. The web-app that you can use to access your journals from everywhere
 and the API. The web-app and the native apps "talk" to the API.
