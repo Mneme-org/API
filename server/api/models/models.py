@@ -21,6 +21,7 @@ class Journal(Base):
     id = Column(Integer, primary_key=True)
     pub_user_id = Column(String, ForeignKey('users.id'))
     name = Column(String, nullable=False)
+    name_lower = Column(String, nullable=False, index=True)
 
     owner = relationship('User', back_populates='journals')
     entries = relationship('Entry', back_populates='journal')
