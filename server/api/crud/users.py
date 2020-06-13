@@ -3,9 +3,9 @@ from typing import Optional, List
 
 from sqlalchemy.orm import Session
 
-from server.api import schemas
-from server.api.models.models import User
-from server.api import pwd_context
+from .. import schemas
+from ..models.models import User
+from .. import pwd_context
 
 
 def get_user_by_pub_id(db: Session, pub_id: str) -> Optional[User]:
