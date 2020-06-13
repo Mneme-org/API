@@ -1,16 +1,23 @@
 from typing import List
 from datetime import timedelta
 
+from fastapi import FastAPI
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from . import app, ACCESS_TOKEN_EXPIRE_MINUTES
+from . import ACCESS_TOKEN_EXPIRE_MINUTES
 from . import crud, models, schemas
 from .utils import get_db, get_current_user, auth_user, generate_auth_token
 from .database import engine
 
 models.Base.metadata.create_all(bind=engine)
+
+
+app = FastAPI(
+    title="Mneme",
+    description="A self-hosted multi-platform journal keeping app"
+)
 
 
 @app.post("/token", response_model=schemas.Token)

@@ -2,10 +2,7 @@ from fastapi import FastAPI
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer
 from passlib.context import CryptContext
 
-app = FastAPI(
-    title="Mneme",
-    description="A self-hosted multi-platform journal keeping app"
-)
+
 security = HTTPBasic()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")

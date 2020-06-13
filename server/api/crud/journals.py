@@ -2,8 +2,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from server.api import schemas
-from server.api.models import Journal, User
+from .. import schemas
+from ..models import Journal, User
 
 
 def get_journals_for(db: Session, user: User, skip: int = 0, limit: int = 100):

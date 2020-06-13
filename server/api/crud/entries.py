@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from server.api import schemas
-from server.api.models.models import Entry, Keyword
+from .. import schemas
+from ..models.models import Entry, Keyword
 
 
 def create_entry(db: Session, entry: schemas.EntryCreate, jrnl_id: int) -> Entry:
