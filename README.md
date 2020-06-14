@@ -14,4 +14,4 @@ as none of us has made something like it before.
 ---
 
 The [API](https://github.com/Mneme-org/mneme-server/tree/master/server/api) for mneme is made with [python](https://www.python.org/) and [FastAPI](https://fastapi.tiangolo.com/)
-and it supports a minimum of python 3.6. 
+and it supports a minimum of python 3.7 (however it's possible to make it work with python 3.6 if you install a couple more dependencies, namely `async-exit-stack` and `async-generator`). 
