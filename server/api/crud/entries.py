@@ -22,3 +22,8 @@ def create_entry(db: Session, entry: schemas.EntryCreate, jrnl_id: int) -> Entry
 
 def get_entry_by_id(db: Session, entry_id: int) -> Entry:
     return db.query(Entry).filter(Entry.id == entry_id).first()
+
+
+def delete_entry(db: Session, entry: Entry) -> None:
+    db.delete(entry)
+    db.commit()

@@ -1,3 +1,5 @@
+import random
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -147,3 +149,29 @@ def test_create_entry_with_keyword():
     assert data["date"] == "now"
     assert data["keywords"][0]["word"] == "a_keyword"
     assert data["id"] == data["keywords"][0]["entry_id"]
+
+
+def test_delete_entry():
+    token = log_in()
+
+    # Select and delete a random entry
+    r = client.get("/journals/", headers={"Authorization": token})
+    data = r.json()
+    jrnl = random.choice(data)
+    entry = random.choice(jrnl["entries"])
+
+    r = client.delete(
+        f"/journals/{jrnl['name']}/{entry['id']}",
+        headers={"Authorization": token}
+    )
+
+    assert r.status_code == 200
+
+    # Check that this entry is the only one that got deleted
+    r = client.get("/journals/", headers={"Authorization": token})
+
+    data = r.json()
+    new_jrnl = [_jrnl for _jrnl in data if _jrnl['id'] == jrnl['id']][0]
+
+    assert len(new_jrnl['entries']) == len(jrnl['entries']) - 1
+    assert [_entry for _entry in new_jrnl['entries'] if _entry['id'] == entry['id']] == []

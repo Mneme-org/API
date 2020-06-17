@@ -99,3 +99,17 @@ def read_entry(*, user: models.User = Depends(get_current_user), db: Session = D
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
     else:
         return entry_db
+
+
+@app.delete("/journals/{jrnl_name}/{entry_id}")
+def delete_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
+               jrnl_name: str, entry_id: int):
+    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name)
+    if db_jrnl is None:
+        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+
+    entry_db = crud.get_entry_by_id(db, entry_id)
+    if entry_db is None or entry_db.journal.id != db_jrnl.id:
+        raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
+
+    crud.delete_entry(db, entry_db)
