@@ -1,4 +1,3 @@
-from fastapi import FastAPI
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer
 from passlib.context import CryptContext
 

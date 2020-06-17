@@ -3,6 +3,7 @@ python: "3.7"
 dist: xenial
 
 stages:
+  - lint
   - test
 
 cache:
@@ -12,13 +13,13 @@ cache:
 
 jobs:
   include:
-#    - stage: lint
-#      install:
-#        - pip install --upgrade pip
-#        - pip install poetry
-#        - poetry install -v
-#      script:
-#        - pylint server
+    - stage: lint
+      install:
+        - pip install --upgrade pip
+        - pip install poetry
+        - poetry install -v
+      script:
+        - pylint server/api
 
     - stage: test
       install:

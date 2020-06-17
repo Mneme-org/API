@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import update
 
 from .. import schemas
 from ..models.models import Entry, Keyword

@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from ..database import Base
 from ..main import app
+from ..database import Base
 from ..utils import get_db
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -23,7 +23,7 @@ def override_get_db():
     try:
         yield db
     finally:
-        db.close()
+        db.close()  # pylint: disable=no-member
 
 
 app.dependency_overrides[get_db] = override_get_db
@@ -191,7 +191,7 @@ def test_update_entry():
         headers={"Authorization": token},
         json={
             "short": "updated entry",
-            "long": "new loooooong",
+            "long": "new long",
             "date": "now",
             "keywords": [{"word": "an updated keyword"}],
             "jrnl_id": jrnl["id"]
@@ -201,7 +201,7 @@ def test_update_entry():
     assert r.status_code == 200
     data = r.json()
     assert data["short"] == "updated entry"
-    assert data["long"] == "new loooooong"
+    assert data["long"] == "new long"
     assert data["keywords"][0]["word"] == "an updated keyword"
     assert len(data["keywords"]) == 1
 
