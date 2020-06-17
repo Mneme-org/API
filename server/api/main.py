@@ -103,7 +103,7 @@ def read_entry(*, user: models.User = Depends(get_current_user), db: Session = D
 
 @app.delete("/journals/{jrnl_name}/{entry_id}")
 def delete_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
-               jrnl_name: str, entry_id: int):
+                 jrnl_name: str, entry_id: int):
     db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
@@ -113,3 +113,25 @@ def delete_entry(*, user: models.User = Depends(get_current_user), db: Session =
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
     crud.delete_entry(db, entry_db)
+
+
+@app.put("/journals/{jrnl_name}/{entry_id}", response_model=schemas.Entry)
+def update_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
+                 jrnl_name: str, entry_id: int, updated_entry: schemas.EntryUpdate):
+    # Check jrnl_name belongs to current user
+    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name)
+    if db_jrnl is None:
+        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+
+    # Check updated_entry.jrnl_id belongs to current user
+    if db_jrnl.id != updated_entry.jrnl_id:
+        dest_jrnl = crud.get_jrnl_by_id(db, user.public_id, updated_entry.jrnl_id)
+        if dest_jrnl is None:
+            raise HTTPException(status_code=404, detail="Destination journal doesn't exists for this user")
+
+    # Check entry_id belongs to current user
+    entry_db = crud.get_entry_by_id(db, entry_id)
+    if entry_db is None or entry_db.journal.id != db_jrnl.id:
+        raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
+
+    return crud.update_entry(db, updated_entry, entry_id)

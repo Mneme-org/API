@@ -175,3 +175,40 @@ def test_delete_entry():
 
     assert len(new_jrnl['entries']) == len(jrnl['entries']) - 1
     assert [_entry for _entry in new_jrnl['entries'] if _entry['id'] == entry['id']] == []
+
+
+def test_update_entry():
+    token = log_in()
+
+    # Select and update a random entry
+    r = client.get("/journals/", headers={"Authorization": token})
+    data = r.json()
+    jrnl = random.choice(data)
+    entry = random.choice(jrnl["entries"])
+
+    r = client.put(
+        f"/journals/{jrnl['name']}/{entry['id']}",
+        headers={"Authorization": token},
+        json={
+            "short": "updated entry",
+            "long": "new loooooong",
+            "date": "now",
+            "keywords": [{"word": "an updated keyword"}],
+            "jrnl_id": jrnl["id"]
+        }
+    )
+    print(r.text)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["short"] == "updated entry"
+    assert data["long"] == "new loooooong"
+    assert data["keywords"][0]["word"] == "an updated keyword"
+    assert len(data["keywords"]) == 1
+
+    r = client.get(
+        f"/journals/{jrnl['name']}/{data['id']}",
+        headers={"Authorization": token}
+    )
+    assert r.status_code == 200
+    new_data = r.json()
+    assert new_data == data
