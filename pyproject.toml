@@ -39,6 +39,8 @@ max-line-length = 120
 min-public-methods = 0
 
 [tool.pylint.reports]
+reports = "no"
+score = "no"
 output-format = "colorized"
 
 [build-system]
