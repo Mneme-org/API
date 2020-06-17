@@ -14,6 +14,11 @@ class EntryCreate(EntryBase):
     keywords: List[KeywordCreate] = []
 
 
+class EntryUpdate(EntryBase):
+    keywords: List[KeywordCreate]
+    jrnl_id: int
+
+
 class Entry(EntryBase):
     id: int
     jrnl_id: int

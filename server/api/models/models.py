@@ -12,7 +12,7 @@ class User(Base):
     username = Column(String, unique=True)
     hashed_password = Column(String, nullable=False)
 
-    journals = relationship("Journal", back_populates="owner")
+    journals = relationship("Journal", back_populates="owner", cascade="delete")
 
 
 class Journal(Base):
@@ -24,7 +24,7 @@ class Journal(Base):
     name_lower = Column(String, nullable=False, index=True)
 
     owner = relationship('User', back_populates='journals')
-    entries = relationship('Entry', back_populates='journal')
+    entries = relationship('Entry', back_populates='journal', cascade="delete")
 
 
 class Entry(Base):
@@ -38,7 +38,7 @@ class Entry(Base):
     date = Column(String, nullable=False)
 
     journal = relationship('Journal', back_populates='entries')
-    keywords = relationship('Keyword', back_populates='entry')
+    keywords = relationship('Keyword', back_populates='entry', cascade="delete")
 
 
 class Keyword(Base):

@@ -11,7 +11,6 @@ For now it supports:
 * Creation of entries for journals
 
 To do:
-* Write tests
 * Update and Deletion of users
 * Update and Deletion of journals
-* Update and Deletion of entries
+* Search function for keywords and dates
