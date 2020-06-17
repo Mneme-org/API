@@ -15,7 +15,7 @@ def get_db():
     try:
         yield db
     finally:
-        db.close()
+        db.close()  # pylint: disable=no-member
 
 
 def generate_auth_token(pub_id: str, expires_delta: timedelta = None):

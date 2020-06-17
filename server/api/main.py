@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
-from . import crud, models, schemas
+from . import models, schemas, crud
 from .utils import get_db, get_current_user, auth_user, generate_auth_token
 from .database import engine
 

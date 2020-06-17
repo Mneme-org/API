@@ -11,11 +11,11 @@ def get_journals_for(db: Session, user: User, skip: int = 0, limit: int = 100):
 
 
 def get_jrnl_by_name(db: Session, pub_user_id: str, jrnl_name: str) -> Optional[Journal]:
-    return db.query(Journal).filter(Journal.name_lower == jrnl_name, pub_user_id == pub_user_id).first()
+    return db.query(Journal).filter(Journal.name_lower == jrnl_name, Journal.pub_user_id == pub_user_id).first()
 
 
 def get_jrnl_by_id(db: Session, pub_user_id: str, jrnl_id: int) -> Optional[Journal]:
-    return db.query(Journal).filter(Journal.id == jrnl_id, pub_user_id == pub_user_id).first()
+    return db.query(Journal).filter(Journal.id == jrnl_id, Journal.pub_user_id == pub_user_id).first()
 
 
 def create_journal(db: Session, pub_user_id: str, jrnl: schemas.JournalCreate) -> Journal:
