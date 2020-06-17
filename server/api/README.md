@@ -6,9 +6,9 @@ essentially all other apps need to "talk" to it to get, create, or update your j
 It's simple in use in case you want to create your own app that uses it.
 
 For now it supports:
-* Creation of users
-* Creation of journals for users
-* Creation of entries for journals
+* Create users
+* Create journals for users
+* Create, delete, and update entries for journals
 
 To do:
 * Update and Deletion of users
