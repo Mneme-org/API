@@ -1,14 +1,14 @@
 from typing import List
 from datetime import timedelta
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
 from . import models, schemas, crud
-from .utils import get_db, get_current_user, auth_user, generate_auth_token
+from .utils import get_db, get_current_user, auth_user, generate_auth_token, parse_date
 from .database import engine
 
 models.Base.metadata.create_all(bind=engine)
@@ -135,3 +135,33 @@ def update_entry(*, user: models.User = Depends(get_current_user), db: Session =
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
     return crud.update_entry(db, updated_entry, entry_id)
+
+
+@app.get("/journals/entries", response_model=List[schemas.Entry], name="Find entries")
+def find_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
+               params: schemas.Params = Depends(None), keywords: List[str] = Query(...)):
+    """Method parameter is either 'and', or 'or' and it translates to whether it should look for entries
+       that have all the keywords, or at least one of them"""
+    if params.date_min is None:
+        date_min = None
+    else:
+        date_min = parse_date(params.date_min)
+    if params.date_max is None:
+        date_max = None
+    else:
+        date_max = parse_date(params.date_max)
+
+    if params.jrnl_name is not None:
+        db_jrnl = crud.get_jrnl_by_name(db, user.id, params.jrnl_name)
+        if db_jrnl is None:
+            raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+        else:
+            jrnl_id = db_jrnl.id
+    else:
+        jrnl_id = None
+
+    if params.method in ["or", "and"]:
+        # We pass date_min and date_max because now they are datetime objects, not strings
+        return crud.get_entries(db, user.id, params, keywords, date_min, date_max, jrnl_id)
+    else:
+        raise HTTPException(status_code=400, detail="Method parameter can only be 'and' or 'or'.")

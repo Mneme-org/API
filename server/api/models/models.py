@@ -36,11 +36,11 @@ class Entry(Base):
     short = Column(String, nullable=False)
     long = Column(String, nullable=True)
 
-    date = Column(String, nullable=False)
+    # YYYY-MM-DD HH:MM format in UTC timezone
+    date = Column(DateTime, nullable=False)
 
     journal = relationship('Journal', back_populates='entries')
-    keywords = relationship('Keyword', back_populates='entry', cascade="delete")
-
+    keywords = relationship("Keyword", backref="entry", cascade="delete")
 
 class Keyword(Base):
     __tablename__ = 'keyword'
@@ -48,5 +48,3 @@ class Keyword(Base):
     id = Column(Integer, primary_key=True)
     entry_id = Column(Integer, ForeignKey('entries.id'))
     word = Column(String, nullable=False)
-
-    entry = relationship('Entry', back_populates='keywords')

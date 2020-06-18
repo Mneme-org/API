@@ -63,3 +63,10 @@ def auth_user(db: Session, username: str, password: str):
         return user
     else:
         return False
+
+
+def parse_date(date: str) -> datetime:
+    try:
+        return datetime.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Wrong date format.")

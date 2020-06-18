@@ -9,8 +9,9 @@ For now it supports:
 * Create users
 * Create journals for users
 * Create, delete, and update entries for journals
+* Search function for keywords and dates
 
 To do:
 * Update and Deletion of users
 * Update and Deletion of journals
-* Search function for keywords and dates
+
