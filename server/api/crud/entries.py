@@ -18,7 +18,7 @@ def create_entry(db: Session, entry: schemas.EntryCreate, jrnl_id: int) -> Entry
     db.refresh(new_entry)
 
     for kw in entry.keywords:
-        new_kw = Keyword(entry_id=new_entry.id, word=kw.word)
+        new_kw = Keyword(entry_id=new_entry.id, word=kw.word.lower())
         db.add(new_kw)
 
     db.commit()
@@ -51,7 +51,7 @@ def update_entry(db: Session, updated_entry: schemas.EntryUpdate, entry_id: int)
 def get_entries(db: Session, user_id: str, params, keywords: List[str],
                 date_min: datetime, date_max: datetime, jrnl_id: Optional[int]) -> List[Entry]:
     query = db.query(Entry).join(Entry.keywords).join(Entry.journal)\
-        .filter(Journal.pub_user_id == user_id)
+        .filter(Journal.user_id == user_id)
     if jrnl_id:
         query = query.filter(Entry.jrnl_id == jrnl_id)
     if date_min:

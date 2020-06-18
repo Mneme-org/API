@@ -2,7 +2,7 @@ from typing import List
 from datetime import timedelta
 
 from fastapi import FastAPI, Query
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -26,12 +26,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=401,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    encoded_token = generate_auth_token(user.public_id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    encoded_token = generate_auth_token(user.id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": encoded_token}
 
 
@@ -44,7 +44,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         return crud.create_user(db=db, user=user)
 
 
-@app.get("/users/", response_model=List[schemas.User])
+@app.get("/users/", response_model=List[schemas.User], name="Fetch Users")
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
@@ -53,24 +53,24 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 @app.post('/journals/', response_model=schemas.Journal)
 def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl.name.lower())
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl.name.lower())
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")
     else:
-        return crud.create_journal(db, user.public_id, jrnl)
+        return crud.create_journal(db, user.id, jrnl)
 
 
-@app.get("/journals/{jrnl_name}/", response_model=schemas.Journal)
+@app.get("/journals/{jrnl_name}/", response_model=schemas.Journal, name="Fetch Journal")
 def read_journal(jrnl_name: str, user: models.User = Depends(get_current_user),
                  db: Session = Depends(get_db)):
-    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name.lower())
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name.lower())
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
     else:
         return db_jrnl
 
 
-@app.get("/journals/", response_model=List[schemas.Journal])
+@app.get("/journals/", response_model=List[schemas.Journal], name="Fetch Journals")
 def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(get_current_user),
                   db: Session = Depends(get_db)):
     jrnls = crud.get_journals_for(db, user, skip=skip, limit=limit)
@@ -80,7 +80,7 @@ def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(g
 @app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry)
 def create_entry(*, jrnl_name: str, user: models.User = Depends(get_current_user), entry: schemas.EntryCreate,
                  db: Session = Depends(get_db)):
-    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name.lower())
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name.lower())
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
@@ -90,7 +90,7 @@ def create_entry(*, jrnl_name: str, user: models.User = Depends(get_current_user
 @app.get("/journals/{jrnl_name}/{entry_id}", response_model=schemas.Entry)
 def read_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
                jrnl_name: str, entry_id: int):
-    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name)
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
@@ -104,7 +104,7 @@ def read_entry(*, user: models.User = Depends(get_current_user), db: Session = D
 @app.delete("/journals/{jrnl_name}/{entry_id}")
 def delete_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
                  jrnl_name: str, entry_id: int):
-    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name)
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
@@ -119,13 +119,13 @@ def delete_entry(*, user: models.User = Depends(get_current_user), db: Session =
 def update_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
                  jrnl_name: str, entry_id: int, updated_entry: schemas.EntryUpdate):
     # Check jrnl_name belongs to current user
-    db_jrnl = crud.get_jrnl_by_name(db, user.public_id, jrnl_name)
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
     # Check updated_entry.jrnl_id belongs to current user
     if db_jrnl.id != updated_entry.jrnl_id:
-        dest_jrnl = crud.get_jrnl_by_id(db, user.public_id, updated_entry.jrnl_id)
+        dest_jrnl = crud.get_jrnl_by_id(db, user.id, updated_entry.jrnl_id)
         if dest_jrnl is None:
             raise HTTPException(status_code=404, detail="Destination journal doesn't exists for this user")
 

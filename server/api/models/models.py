@@ -7,13 +7,12 @@ from . import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    public_id = Column(String, index=True)
+    id = Column(String, primary_key=True, index=True)
 
     username = Column(String, unique=True)
     hashed_password = Column(String, nullable=False)
 
-    journals = relationship("Journal", back_populates="owner", cascade="delete")
+    journals = relationship("Journal", back_populates="user", cascade="delete")
 
 
 class Journal(Base):
@@ -24,7 +23,7 @@ class Journal(Base):
     name = Column(String, nullable=False)
     name_lower = Column(String, nullable=False, index=True)
 
-    owner = relationship('User', back_populates='journals')
+    user = relationship('User', back_populates='journals')
     entries = relationship('Entry', back_populates='journal', cascade="delete")
 
 
