@@ -301,6 +301,26 @@ def test_delete_entry():
     assert [_entry for _entry in new_jrnl['entries'] if _entry['id'] == entry['id']] == []
 
 
+def test_update_user():
+    token = log_in("test1", "12345")
+    r = client.put(
+        "/users/?new_username=new_username",
+        headers={"Authorization": token},
+    )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data['username'] == "new_username"
+
+    r = client.get("/users/")
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 1
+    user_names = [user['username'] for user in data]
+    assert "new_username" in user_names
+    assert "test1" not in user_names
+
+
 def test_delete_user():
     r = client.post(
         "/users/",

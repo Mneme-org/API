@@ -37,7 +37,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @app.post("/users/", response_model=schemas.User, status_code=201)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_username(db, name=user.username)
+    db_user = crud.get_user_by_username(db, name=user.username.lower())
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
     else:
@@ -54,6 +54,17 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 def delete_user(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Delete the current user and all his data. This is action is irreversible."""
     crud.delete_user(db, user.id)
+
+
+@app.put("/users/", response_model=schemas.User)
+def update_user(*, user: models.User = Depends(get_current_user),
+                db: Session = Depends(get_db), new_username: str):
+    db_user = crud.get_user_by_username(db, name=new_username.lower())
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    else:
+        db_user = crud.get_user_by_id(db, user.id)
+        return crud.update_user(db, db_user, new_username.lower())
 
 
 @app.post('/journals/', response_model=schemas.Journal, status_code=201)
