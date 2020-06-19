@@ -24,10 +24,22 @@ def create_user(db: Session, user: schemas.UserCreate) -> User:
     hashed_password = pwd_context.hash(user.password)
 
     user_id = str(uuid.uuid4())
-    new_user = User(username=user.username, hashed_password=hashed_password, id=user_id)
+    new_user = User(username=user.username.lower(), hashed_password=hashed_password, id=user_id)
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
     return new_user
+
+
+def delete_user(db: Session, user_id: str):
+    db_user = get_user_by_id(db, user_id)
+    db.delete(db_user)
+    db.commit()
+
+
+def update_user(db: Session, db_user: User, new_username: str) -> User:
+    db_user.username = new_username
+    db.commit()
+    return db_user

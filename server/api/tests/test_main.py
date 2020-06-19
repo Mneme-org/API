@@ -36,7 +36,7 @@ def test_create_user():
         json={"username": "test1", "password": "12345"}
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     assert r.text is not None
     data = r.json()
     assert data["username"] == "test1"
@@ -53,10 +53,10 @@ def test_create_user():
     assert user_id in [user["id"] for user in data]
 
 
-def log_in():
+def log_in(username: str, password: str):
     r = client.post(
         "/token",
-        data={"username": "test1", "password": "12345"}
+        data={"username": username, "password": password}
     )
     data = r.json()
     return "Bearer " + data["access_token"]
@@ -106,7 +106,7 @@ def create_entries(token: str):
 
 
 def test_create_jrnl():
-    token = log_in()
+    token = log_in("test1", "12345")
 
     r = client.post(
         "/journals/",
@@ -116,7 +116,7 @@ def test_create_jrnl():
         }
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["name"] == "journal_1"
     assert data["entries"] == []
@@ -131,7 +131,7 @@ def test_create_jrnl():
 
 
 def test_read_journals():
-    token = log_in()
+    token = log_in("test1", "12345")
 
     r = client.get(
         "/journals/",
@@ -144,7 +144,7 @@ def test_read_journals():
 
 
 def test_read_journal():
-    token = log_in()
+    token = log_in("test1", "12345")
 
     r = client.get(
         "/journals/journal_1",
@@ -158,7 +158,7 @@ def test_read_journal():
 
 def test_create_entry_with_long():
     """Create an entry with no keywords"""
-    token = log_in()
+    token = log_in("test1", "12345")
 
     r = client.post(
         "/journals/journal_1/entries/",
@@ -171,7 +171,7 @@ def test_create_entry_with_long():
         }
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["short"] == "entry_1"
     assert data["long"] == "a long text"
@@ -180,7 +180,7 @@ def test_create_entry_with_long():
 
 def test_create_entry_with_keyword():
     """Create an entry with keyword"""
-    token = log_in()
+    token = log_in("test1", "12345")
 
     r = client.post(
         "/journals/journal_1/entries/",
@@ -192,7 +192,7 @@ def test_create_entry_with_keyword():
         }
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["short"] == "entry_1"
     assert data["keywords"][0]["word"] == "a keyword"
@@ -201,7 +201,7 @@ def test_create_entry_with_keyword():
 
 # This doesn't test the search function extensively, maybe it should?
 def test_find_entries():
-    token = log_in()
+    token = log_in("test1", "12345")
     create_entries(token)
 
     r = client.get(
@@ -237,7 +237,7 @@ def test_find_entries():
 
 
 def test_update_entry():
-    token = log_in()
+    token = log_in("test1", "12345")
 
     create_entries(token)
 
@@ -276,7 +276,7 @@ def test_update_entry():
 
 
 def test_delete_entry():
-    token = log_in()
+    token = log_in("test1", "12345")
 
     # Select and delete a random entry
     r = client.get("/journals/", headers={"Authorization": token})
@@ -289,7 +289,7 @@ def test_delete_entry():
         headers={"Authorization": token}
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 204
 
     # Check that this entry is the only one that got deleted
     r = client.get("/journals/", headers={"Authorization": token})
@@ -299,3 +299,47 @@ def test_delete_entry():
 
     assert len(new_jrnl['entries']) == len(jrnl['entries']) - 1
     assert [_entry for _entry in new_jrnl['entries'] if _entry['id'] == entry['id']] == []
+
+
+def test_update_user():
+    token = log_in("test1", "12345")
+    r = client.put(
+        "/users/?new_username=new_username",
+        headers={"Authorization": token},
+    )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data['username'] == "new_username"
+
+    r = client.get("/users/")
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 1
+    user_names = [user['username'] for user in data]
+    assert "new_username" in user_names
+    assert "test1" not in user_names
+
+
+def test_delete_user():
+    r = client.post(
+        "/users/",
+        json={"username": "test2", "password": "12345"}
+    )
+    assert r.status_code == 201
+
+    token = log_in("test2", "12345")
+
+    r = client.delete(
+        "/users/",
+        headers={"Authorization": token}
+    )
+    assert r.status_code == 204
+
+    r = client.get(
+        "/users/"
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 1
+    assert "test2" not in [user['username'] for user in data]
