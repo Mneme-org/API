@@ -35,7 +35,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": encoded_token}
 
 
-@app.post("/users/", response_model=schemas.User)
+@app.post("/users/", response_model=schemas.User, status_code=201)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_username(db, name=user.username)
     if db_user:
@@ -56,6 +56,7 @@ def delete_user(*, user: models.User = Depends(get_current_user), db: Session = 
     crud.delete_user(db, user.id)
 
 
+@app.post('/journals/', response_model=schemas.Journal, status_code=201)
 def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl.name.lower())
@@ -82,7 +83,7 @@ def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(g
     return jrnls
 
 
-@app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry)
+@app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry, status_code=201)
 def create_entry(*, jrnl_name: str, user: models.User = Depends(get_current_user), entry: schemas.EntryCreate,
                  db: Session = Depends(get_db)):
     db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name.lower())
@@ -106,7 +107,7 @@ def read_entry(*, user: models.User = Depends(get_current_user), db: Session = D
         return entry_db
 
 
-@app.delete("/journals/{jrnl_name}/{entry_id}")
+@app.delete("/journals/{jrnl_name}/{entry_id}", status_code=204)
 def delete_entry(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
                  jrnl_name: str, entry_id: int):
     db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name)

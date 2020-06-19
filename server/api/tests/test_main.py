@@ -36,7 +36,7 @@ def test_create_user():
         json={"username": "test1", "password": "12345"}
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     assert r.text is not None
     data = r.json()
     assert data["username"] == "test1"
@@ -116,7 +116,7 @@ def test_create_jrnl():
         }
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["name"] == "journal_1"
     assert data["entries"] == []
@@ -144,7 +144,7 @@ def test_read_journals():
 
 
 def test_read_journal():
-    token = log_in()
+    token = log_in("test1", "12345")
 
     r = client.get(
         "/journals/journal_1",
@@ -171,7 +171,7 @@ def test_create_entry_with_long():
         }
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["short"] == "entry_1"
     assert data["long"] == "a long text"
@@ -192,7 +192,7 @@ def test_create_entry_with_keyword():
         }
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["short"] == "entry_1"
     assert data["keywords"][0]["word"] == "a keyword"
@@ -289,7 +289,7 @@ def test_delete_entry():
         headers={"Authorization": token}
     )
 
-    assert r.status_code == 200
+    assert r.status_code == 204
 
     # Check that this entry is the only one that got deleted
     r = client.get("/journals/", headers={"Authorization": token})
