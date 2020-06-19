@@ -35,14 +35,14 @@ def test_create_user():
         "/users/",
         json={"username": "test1", "password": "12345"}
     )
-    print(r.text)
+
     assert r.status_code == 200
     assert r.text is not None
     data = r.json()
     assert data["username"] == "test1"
     assert data["journals"] == []
-    assert "public_id" in data
-    user_id = data["public_id"]
+    assert "id" in data
+    user_id = data["id"]
 
     r = client.get(
         "/users/"
@@ -50,7 +50,7 @@ def test_create_user():
     assert r.status_code == 200
     assert r.text is not None
     data = r.json()
-    assert user_id in [user["public_id"] for user in data]
+    assert user_id in [user["id"] for user in data]
 
 
 def log_in():
@@ -60,6 +60,49 @@ def log_in():
     )
     data = r.json()
     return "Bearer " + data["access_token"]
+
+
+def create_entries(token: str):
+    """Used by test_find_entries"""
+    client.post(
+        "/journals/journal_1/entries/",
+        headers={"Authorization": token},
+        json={
+            "short": "entry_2",
+            "date": "2019-11-03",
+            "keywords": [
+                {
+                    "word": "word1"
+                },
+                {
+                    "word": "word 1"
+                },
+                {
+                    "word": "word 2"
+                }
+            ]
+        }
+    )
+
+    client.post(
+        "/journals/journal_2/entries/",
+        headers={"Authorization": token},
+        json={
+            "short": "entry_3",
+            "date": "2019-11-03",
+            "keywords": [
+                {
+                    "word": "word_1"
+                },
+                {
+                    "word": "word2"
+                },
+                {
+                    "word": "a keyword"
+                }
+            ]
+        }
+    )
 
 
 def test_create_jrnl():
@@ -72,12 +115,19 @@ def test_create_jrnl():
             "name": "journal_1"
         }
     )
-    print(r.text)
 
     assert r.status_code == 200
     data = r.json()
     assert data["name"] == "journal_1"
     assert data["entries"] == []
+
+    client.post(
+        "/journals/",
+        headers={"Authorization": token},
+        json={
+            "name": "journal_2"
+        }
+    )
 
 
 def test_read_journals():
@@ -116,7 +166,7 @@ def test_create_entry_with_long():
         json={
             "short": "entry_1",
             "long": "a long text",
-            "date": "now",
+            "date": "2010-01-12",
             "keywords": []
         }
     )
@@ -125,7 +175,6 @@ def test_create_entry_with_long():
     data = r.json()
     assert data["short"] == "entry_1"
     assert data["long"] == "a long text"
-    assert data["date"] == "now"
     assert data["keywords"] == []
 
 
@@ -138,17 +187,92 @@ def test_create_entry_with_keyword():
         headers={"Authorization": token},
         json={
             "short": "entry_1",
-            "date": "now",
-            "keywords": [{"word": "a_keyword"}]
+            "date": "2001-10-25",
+            "keywords": [{"word": "a keyword"}]
         }
     )
 
     assert r.status_code == 200
     data = r.json()
     assert data["short"] == "entry_1"
-    assert data["date"] == "now"
-    assert data["keywords"][0]["word"] == "a_keyword"
+    assert data["keywords"][0]["word"] == "a keyword"
     assert data["id"] == data["keywords"][0]["entry_id"]
+
+
+# This doesn't test the search function extensively, maybe it should?
+def test_find_entries():
+    token = log_in()
+    create_entries(token)
+
+    r = client.get(
+        "/journals/entries?keywords=a+keyword&limit=100&method=or",
+        headers={"Authorization": token}
+    )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 2
+    assert data[0]["short"] == "entry_1"
+
+    r = client.get(
+        "/journals/entries?keywords=word1&keywords=word+1&method=and",
+        headers={"Authorization": token}
+    )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 1
+    assert data[0]["short"] == "entry_2"
+
+    r = client.get(
+        "/journals/entries?keywords=word_1&keywords=a+keyword&method=or",
+        headers={"Authorization": token}
+    )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 2
+    assert data[0]["short"] in ["entry_3", "entry_1"]
+    assert data[1]["short"] in ["entry_3", "entry_1"]
+
+
+def test_update_entry():
+    token = log_in()
+
+    create_entries(token)
+
+    # Select and update a random entry
+    r = client.get("/journals/", headers={"Authorization": token})
+    data = r.json()
+    jrnl = random.choice(data)
+    entry = random.choice(jrnl["entries"])
+
+    r = client.put(
+        f"/journals/{jrnl['name']}/{entry['id']}",
+        headers={"Authorization": token},
+        json={
+            "short": "updated entry",
+            "long": "new long",
+            "date": "2020-06-19",
+            "keywords": [{"word": "an updated keyword"}],
+            "jrnl_id": jrnl["id"]
+        }
+    )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["short"] == "updated entry"
+    assert data["long"] == "new long"
+    assert data["keywords"][0]["word"] == "an updated keyword"
+    assert len(data["keywords"]) == 1
+
+    r = client.get(
+        f"/journals/{jrnl['name']}/{data['id']}",
+        headers={"Authorization": token}
+    )
+    assert r.status_code == 200
+    new_data = r.json()
+    assert new_data == data
 
 
 def test_delete_entry():
@@ -175,40 +299,3 @@ def test_delete_entry():
 
     assert len(new_jrnl['entries']) == len(jrnl['entries']) - 1
     assert [_entry for _entry in new_jrnl['entries'] if _entry['id'] == entry['id']] == []
-
-
-def test_update_entry():
-    token = log_in()
-
-    # Select and update a random entry
-    r = client.get("/journals/", headers={"Authorization": token})
-    data = r.json()
-    jrnl = random.choice(data)
-    entry = random.choice(jrnl["entries"])
-
-    r = client.put(
-        f"/journals/{jrnl['name']}/{entry['id']}",
-        headers={"Authorization": token},
-        json={
-            "short": "updated entry",
-            "long": "new long",
-            "date": "now",
-            "keywords": [{"word": "an updated keyword"}],
-            "jrnl_id": jrnl["id"]
-        }
-    )
-    print(r.text)
-    assert r.status_code == 200
-    data = r.json()
-    assert data["short"] == "updated entry"
-    assert data["long"] == "new long"
-    assert data["keywords"][0]["word"] == "an updated keyword"
-    assert len(data["keywords"]) == 1
-
-    r = client.get(
-        f"/journals/{jrnl['name']}/{data['id']}",
-        headers={"Authorization": token}
-    )
-    assert r.status_code == 200
-    new_data = r.json()
-    assert new_data == data

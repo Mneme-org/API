@@ -8,8 +8,8 @@ from ..models.models import User
 from .. import pwd_context
 
 
-def get_user_by_pub_id(db: Session, pub_id: str) -> Optional[User]:
-    return db.query(User).filter(User.public_id == pub_id).first()
+def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
+    return db.query(User).filter(User.id == user_id).first()
 
 
 def get_user_by_username(db: Session, name: str) -> Optional[User]:
@@ -23,8 +23,8 @@ def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
 def create_user(db: Session, user: schemas.UserCreate) -> User:
     hashed_password = pwd_context.hash(user.password)
 
-    pub_id = str(uuid.uuid4())
-    new_user = User(username=user.username, hashed_password=hashed_password, public_id=pub_id)
+    user_id = str(uuid.uuid4())
+    new_user = User(username=user.username, hashed_password=hashed_password, id=user_id)
 
     db.add(new_user)
     db.commit()

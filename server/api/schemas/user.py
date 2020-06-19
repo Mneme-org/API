@@ -13,7 +13,7 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    public_id: str
+    id: str
 
     journals: List[Journal] = []
 

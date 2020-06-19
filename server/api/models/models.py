@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 
 from . import Base
@@ -7,24 +7,23 @@ from . import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    public_id = Column(String, index=True)
+    id = Column(String, primary_key=True, index=True)
 
     username = Column(String, unique=True)
     hashed_password = Column(String, nullable=False)
 
-    journals = relationship("Journal", back_populates="owner", cascade="delete")
+    journals = relationship("Journal", back_populates="user", cascade="delete")
 
 
 class Journal(Base):
     __tablename__ = 'journals'
 
     id = Column(Integer, primary_key=True)
-    pub_user_id = Column(String, ForeignKey('users.id'))
+    user_id = Column(String, ForeignKey('users.id'))
     name = Column(String, nullable=False)
     name_lower = Column(String, nullable=False, index=True)
 
-    owner = relationship('User', back_populates='journals')
+    user = relationship('User', back_populates='journals')
     entries = relationship('Entry', back_populates='journal', cascade="delete")
 
 
@@ -36,11 +35,11 @@ class Entry(Base):
     short = Column(String, nullable=False)
     long = Column(String, nullable=True)
 
-    date = Column(String, nullable=False)
+    # YYYY-MM-DD HH:MM format in UTC timezone
+    date = Column(DateTime, nullable=False)
 
     journal = relationship('Journal', back_populates='entries')
-    keywords = relationship('Keyword', back_populates='entry', cascade="delete")
-
+    keywords = relationship("Keyword", backref="entry", cascade="delete")
 
 class Keyword(Base):
     __tablename__ = 'keyword'
@@ -48,5 +47,3 @@ class Keyword(Base):
     id = Column(Integer, primary_key=True)
     entry_id = Column(Integer, ForeignKey('entries.id'))
     word = Column(String, nullable=False)
-
-    entry = relationship('Entry', back_populates='keywords')

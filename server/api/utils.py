@@ -18,11 +18,11 @@ def get_db():
         db.close()  # pylint: disable=no-member
 
 
-def generate_auth_token(pub_id: str, expires_delta: timedelta = None):
+def generate_auth_token(user_id: str, expires_delta: timedelta = None):
     expires = datetime.utcnow() + (expires_delta or timedelta(minutes=30))
 
     payload = {
-        'public_id': pub_id,
+        'public_id': user_id,
         'exp': expires
     }
     encoded_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -38,15 +38,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        public_id: str = payload.get("public_id")
-        if public_id is None:
+        user_id: str = payload.get("public_id")
+        if id is None:
             raise credentials_exception
         else:
-            token_data = schemas.TokenData(public_id=public_id)
+            token_data = schemas.TokenData(user_id=user_id)
     except PyJWTError:
         raise credentials_exception
 
-    user = crud.get_user_by_pub_id(db, token_data.public_id)
+    user = crud.get_user_by_id(db, token_data.user_id)
     if user is None:
         raise credentials_exception
     else:
@@ -63,3 +63,10 @@ def auth_user(db: Session, username: str, password: str):
         return user
     else:
         return False
+
+
+def parse_date(date: str) -> datetime:
+    try:
+        return datetime.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Wrong date format.")

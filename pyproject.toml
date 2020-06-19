@@ -30,13 +30,14 @@ ignore = ["tests"]
 disable = ["C0114", "C0115", "C0116", "R1705", "R1720", "W0511", "R0401"]
 
 [tool.pylint.basic]
-good-names = ["r", "db", "kw"]
+good-names = ["r", "db", "kw", "i", "e"]
 
 [tool.pylint.format]
 max-line-length = 120
 
 [tool.pylint.design]
 min-public-methods = 0
+max-args = 8
 
 [tool.pylint.reports]
 reports = "no"
