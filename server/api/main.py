@@ -50,7 +50,12 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return users
 
 
-@app.post('/journals/', response_model=schemas.Journal)
+@app.delete("/users/", status_code=204)
+def delete_user(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete the current user and all his data. This is action is irreversible."""
+    crud.delete_user(db, user.id)
+
+
 def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl.name.lower())

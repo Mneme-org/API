@@ -31,3 +31,9 @@ def create_user(db: Session, user: schemas.UserCreate) -> User:
     db.refresh(new_user)
 
     return new_user
+
+
+def delete_user(db: Session, user_id: str):
+    db_user = get_user_by_id(db, user_id)
+    db.delete(db_user)
+    db.commit()
