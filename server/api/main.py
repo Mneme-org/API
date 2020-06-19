@@ -70,7 +70,7 @@ def update_user(*, user: models.User = Depends(get_current_user),
 @app.post('/journals/', response_model=schemas.Journal, status_code=201)
 def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl.name.lower())
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl.name)
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")
     else:
@@ -101,6 +101,22 @@ def delete_journal(*, user: models.User = Depends(get_current_user), db: Session
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
     crud.delete_journal(db, db_jrnl)
+
+
+@app.put("/journals/{jrnl_name}/", response_model=schemas.Journal)
+def update_journal(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db),
+                   jrnl_name: str, new_name: str):
+    # Check if new_name exists as a journal for the user
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, new_name.lower())
+    if db_jrnl is not None:
+        raise HTTPException(status_code=400, detail="The new journal name already exists for the user")
+
+    # Check jrnl_name belongs to current user
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name.lower())
+    if db_jrnl is None:
+        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+
+    return crud.update_journal(db, db_jrnl, new_name)
 
 
 @app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry, status_code=201)

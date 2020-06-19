@@ -10,12 +10,12 @@ def get_journals_for(db: Session, user: User, skip: int = 0, limit: int = 100):
     return db.query(Journal).filter(Journal.user_id == user.id).offset(skip).limit(limit).all()
 
 
-def get_jrnl_by_name(db: Session, pub_user_id: str, jrnl_name: str) -> Optional[Journal]:
-    return db.query(Journal).filter(Journal.name_lower == jrnl_name, Journal.user_id == pub_user_id).first()
+def get_jrnl_by_name(db: Session, user_id: str, jrnl_name: str) -> Optional[Journal]:
+    return db.query(Journal).filter(Journal.name_lower == jrnl_name, Journal.user_id == user_id).first()
 
 
-def get_jrnl_by_id(db: Session, pub_user_id: str, jrnl_id: int) -> Optional[Journal]:
-    return db.query(Journal).filter(Journal.id == jrnl_id, Journal.user_id == pub_user_id).first()
+def get_jrnl_by_id(db: Session, user_id: str, jrnl_id: int) -> Optional[Journal]:
+    return db.query(Journal).filter(Journal.id == jrnl_id, Journal.user_id == user_id).first()
 
 
 def create_journal(db: Session, user_id: str, jrnl: schemas.JournalCreate) -> Journal:
@@ -32,3 +32,10 @@ def create_journal(db: Session, user_id: str, jrnl: schemas.JournalCreate) -> Jo
 def delete_journal(db: Session, db_journal: Journal):
     db.delete(db_journal)
     db.commit()
+
+
+def update_journal(db: Session, db_journal: Journal, new_name: str) -> Journal:
+    db_journal.name = new_name
+    db_journal.name_lower = new_name.lower()
+    db.commit()
+    return db_journal

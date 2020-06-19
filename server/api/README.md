@@ -5,14 +5,11 @@ essentially all other apps need to "talk" to it to get, create, or update your j
 
 It's simple in use in case you want to create your own app that uses it.
 
-For now it supports:
+It can:
 * Create, delete, and update users
-* Create journals for users
+* Create, delete, and update journals for users
 * Create, delete, and update entries for journals
 * Search function for keywords and dates
 
 To do:
-* Update and Deletion of journals
-
-Later:
-* Encryption
+* Optional Encryption
