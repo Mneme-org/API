@@ -27,3 +27,8 @@ def create_journal(db: Session, user_id: str, jrnl: schemas.JournalCreate) -> Jo
     db.refresh(new_jrnl)
 
     return new_jrnl
+
+
+def delete_journal(db: Session, db_journal: Journal):
+    db.delete(db_journal)
+    db.commit()

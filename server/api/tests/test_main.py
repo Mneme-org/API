@@ -301,6 +301,23 @@ def test_delete_entry():
     assert [_entry for _entry in new_jrnl['entries'] if _entry['id'] == entry['id']] == []
 
 
+def test_delete_journal():
+    token = log_in("test1", "12345")
+    r = client.delete(
+        "/journals/some%20name/",
+        headers={"Authorization": token}
+    )
+    assert r.status_code == 204
+
+    r = client.get(
+        "/journals/some+name",
+        headers={"Authorization": token}
+    )
+    assert r.status_code == 404
+
+
+        headers={"Authorization": token}
+    )
 def test_update_user():
     token = log_in("test1", "12345")
     r = client.put(

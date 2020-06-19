@@ -94,6 +94,15 @@ def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(g
     return jrnls
 
 
+@app.delete("/journals/{jrnl_name}/", status_code=204)
+def delete_journal(*, user: models.User = Depends(get_current_user), db: Session = Depends(get_db), jrnl_name: str):
+    db_jrnl = crud.get_jrnl_by_name(db, user.id, jrnl_name.lower())
+    if db_jrnl is None:
+        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+
+    crud.delete_journal(db, db_jrnl)
+
+
 @app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry, status_code=201)
 def create_entry(*, jrnl_name: str, user: models.User = Depends(get_current_user), entry: schemas.EntryCreate,
                  db: Session = Depends(get_db)):
