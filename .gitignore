@@ -131,8 +131,7 @@ dmypy.json
 .idea
 .vscode
 
-/server/api/site.db
+/api/site.db
 poetry.lock
-server/api/mneme.db
-server/api/mneme.db
+api/mneme.db
 test.db

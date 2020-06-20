@@ -1,3 +1,3 @@
 #!/bin/bash
 
-poetry run uvicorn server.api.main:app --reload
+poetry run uvicorn api.main:app --reload
