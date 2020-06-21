@@ -1,4 +1,4 @@
-# mneme API [![Build Status](https://travis-ci.org/Mneme-org/mneme-server.svg?branch=master)](https://travis-ci.org/Mneme-org/mneme-server)
+# mneme API [![Build Status](https://travis-ci.com/Mneme-org/API.svg?branch=master)](https://travis-ci.com/Mneme-org/API)
 
 Written in [python](https://www.python.org/) and [FastAPI](https://fastapi.tiangolo.com/), it is at the heart of every mneme app, it is what lives in your server and manages your journals, 
 essentially all other apps need to "talk" to it to get, create, or update your journals. It supports a minimum of python 3.7 (however it's possible to make it work with python 3.6 if you install a couple more dependencies, namely `async-exit-stack` and `async-generator`).
