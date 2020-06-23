@@ -1,14 +1,12 @@
 [tool.poetry]
 name = "mneme-server"
 version = "0.1.0"
-description = "Self hosted journal keeping app"
-authors = ["Danya Rose <Danya.Scout@gmail.com>"]
+description = "mneme API The self hosted journal keeping app."
+authors = ["Spyros Roum <spyrosr1@gmail.com>"]
 license = "GPL-3.0-only"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-flask = "^1.1.2"
-flask_sqlalchemy = "^2.4.3"
 pyJWT = "^1.7.1"
 fastapi = "^0.55.1"
 uvicorn = "^0.11.5"
