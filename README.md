@@ -13,7 +13,23 @@ It's simple in use in case you want to create your own app that uses it.
 
 ## To do:
 * Optional Encryption
-* And possibly others
+* Use a config file for various settings
+* Allow attaching photos or other files as well
+* Optional PostgreSQL database instead of SQLite
+
+## Installation:
+```shell script
+$ git clone https://github.com/Mneme-org/API.git mneme-api
+$ cd mneme-api
+
+# You can either install with poetry:
+$ poetry install
+$ poetry run python run.py
+
+# Or if you don't have/want poetry you can use pip:
+$ pip install -r requirements.txt
+$ python run.py
+```
 
 
  ### License
