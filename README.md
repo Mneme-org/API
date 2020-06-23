@@ -10,10 +10,12 @@ It's simple in use in case you want to create your own app that uses it.
 * Create, delete, and update journals for users
 * Create, delete, and update entries for journals
 * Search function for keywords and dates
+* Optional Encryption (This is actually taken care of in the front end)
 
 ## To do:
-* Optional Encryption
+* Way to change and reset password 
 * Use a config file for various settings
+* Export to text files and other formats
 * Allow attaching photos or other files as well
 * Optional PostgreSQL database instead of SQLite
 
