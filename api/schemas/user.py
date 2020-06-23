@@ -5,6 +5,7 @@ from . import Journal
 
 
 class UserBase(BaseModel):
+    encrypted: bool = False
     username: str
 
 

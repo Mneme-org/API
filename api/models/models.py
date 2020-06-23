@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import relationship
 
 from . import Base
@@ -11,6 +11,8 @@ class User(Base):
 
     username = Column(String, unique=True)
     hashed_password = Column(String, nullable=False)
+
+    encrypted = Column(Boolean, default=False)
 
     journals = relationship("Journal", back_populates="user", cascade="delete")
 

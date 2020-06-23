@@ -58,13 +58,20 @@ def delete_user(*, user: models.User = Depends(get_current_user), db: Session = 
 
 @app.put("/users/", response_model=schemas.User)
 def update_user(*, user: models.User = Depends(get_current_user),
-                db: Session = Depends(get_db), new_username: str):
-    db_user = crud.get_user_by_username(db, name=new_username.lower())
-    if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+                db: Session = Depends(get_db), new_username: str = None, encrypted: bool = False):
+    if new_username is encrypted is None:
+        raise HTTPException(status_code=400, detail="New username and encrypted can't be both empty")
+
+    if new_username is not None:
+        db_user = crud.get_user_by_username(db, name=new_username.lower())
+        if db_user:
+            raise HTTPException(status_code=400, detail="Username already registered")
+
+        db_user = crud.get_user_by_id(db, user.id)
+        return crud.update_user(db, db_user, new_username.lower(), encrypted)
     else:
         db_user = crud.get_user_by_id(db, user.id)
-        return crud.update_user(db, db_user, new_username.lower())
+        return crud.update_user(db, db_user, None, encrypted)
 
 
 @app.post('/journals/', response_model=schemas.Journal, status_code=201)
