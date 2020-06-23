@@ -33,13 +33,14 @@ client = TestClient(app)
 def test_create_user():
     r = client.post(
         "/users/",
-        json={"username": "test1", "password": "12345"}
+        json={"username": "test1", "password": "12345", "encrypted": True}
     )
 
     assert r.status_code == 201
     assert r.text is not None
     data = r.json()
     assert data["username"] == "test1"
+    assert data["encrypted"] is True
     assert data["journals"] == []
     assert "id" in data
     user_id = data["id"]
@@ -343,13 +344,14 @@ def test_delete_journal():
 def test_update_user():
     token = log_in("test1", "12345")
     r = client.put(
-        "/users/?new_username=new_username",
+        "/users/?new_username=new_username&encrypted=0",
         headers={"Authorization": token},
     )
 
     assert r.status_code == 200
     data = r.json()
     assert data['username'] == "new_username"
+    assert data['encrypted'] is False
 
     r = client.get("/users/")
     assert r.status_code == 200
