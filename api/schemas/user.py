@@ -20,3 +20,9 @@ class User(UserBase):
 
     class Config:
         orm_mode = True
+
+
+class UserPassword(BaseModel):
+    """For updating the user password"""
+    current_password: str
+    new_password: str

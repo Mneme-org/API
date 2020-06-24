@@ -74,6 +74,18 @@ def update_user(*, user: models.User = Depends(get_current_user),
         return crud.update_user(db, db_user, None, encrypted)
 
 
+@app.post("/users/update_password", status_code=204)
+def update_password(*, db: Session = Depends(get_db), user: models.User = Depends(get_current_user),
+                    user_password: schemas.UserPassword):
+    if auth_user(db, user.username, user_password.current_password):
+        if user_password.current_password == user_password.new_password:
+            raise HTTPException(status_code=400, detail="New password can't be the same as the old one.")
+        else:
+            crud.update_user_password(db, user, user_password.new_password)
+    else:
+        raise HTTPException(status_code=400, detail="Wrong password.")
+
+
 @app.post('/journals/', response_model=schemas.Journal, status_code=201)
 def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
