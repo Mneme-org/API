@@ -48,3 +48,10 @@ def update_user(db: Session, db_user: User, new_username: Optional[str], encrypt
 
     db.commit()
     return db_user
+
+
+def update_user_password(db: Session, db_user: User, new_password: str):
+    hashed_password = pwd_context.hash(new_password)
+    db_user.hashed_password = hashed_password
+
+    db.commit()

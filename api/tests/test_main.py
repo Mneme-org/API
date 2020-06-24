@@ -362,6 +362,32 @@ def test_update_user():
     assert "test1" not in user_names
 
 
+def test_update_user_password():
+    token = log_in("new_username", "12345")
+
+    r = client.post(
+        "/users/update_password",
+        headers={"Authorization": token},
+        json={
+            "current_password": "12345",
+            "new_password": "54321"
+        }
+    )
+
+    assert r.status_code == 204
+
+    r = client.post(
+        "/token",
+        data={"username": "new_username", "password": "12345"}
+    )
+    assert r.status_code == 401
+    r = client.post(
+        "/token",
+        data={"username": "new_username", "password": "54321"}
+    )
+    assert r.status_code == 200
+
+
 def test_delete_user():
     r = client.post(
         "/users/",
