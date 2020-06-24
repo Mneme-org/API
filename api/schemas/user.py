@@ -7,6 +7,8 @@ from . import Journal
 class UserBase(BaseModel):
     encrypted: bool = False
     username: str
+    # This is only needed if the instance is private, otherwise there are no admins
+    admin: bool = False
 
 
 class UserCreate(UserBase):
