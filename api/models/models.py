@@ -49,3 +49,12 @@ class Keyword(Base):
     id = Column(Integer, primary_key=True)
     entry_id = Column(Integer, ForeignKey('entries.id'))
     word = Column(String, nullable=False)
+
+
+class Configuration(Base):
+    __tablename__ = 'configuration'
+
+
+    id = Column(Integer, primary_key=True)
+    secret = Column(String, nullable=False)
+    public = Column(Boolean, nullable=False)

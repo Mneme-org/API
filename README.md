@@ -13,16 +13,18 @@ It's simple in use in case you want to create your own app that uses it.
 * Optional Encryption (This is actually taken care of in the front end)
 
 ## To do:
-* Way to change and reset password 
-* Use a config file for various settings
+* Way to reset password
 * Export to text files and other formats
 * Allow attaching photos or other files as well
+* Keep deleted entries for a while with option to delete instantly
 * Optional PostgreSQL database instead of SQLite
 
 ## Installation:
 ```shell script
 $ git clone https://github.com/Mneme-org/API.git mneme-api
 $ cd mneme-api
+$ cp example_config.ini config.ini
+# Edit config.ini as needed 
 
 # You can either install with poetry:
 $ poetry install
