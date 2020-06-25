@@ -1,9 +1,8 @@
 # mneme API [![Build Status](https://travis-ci.com/Mneme-org/API.svg?branch=master)](https://travis-ci.com/Mneme-org/API)
 
-Written in [python](https://www.python.org/) and [FastAPI](https://fastapi.tiangolo.com/), it is at the heart of every mneme app, it is what lives in your server and manages your journals, 
-essentially all other apps need to "talk" to it to get, create, or update your journals. It supports a minimum of python 3.7 (however it's possible to make it work with python 3.6 if you install a couple more dependencies, namely `async-exit-stack` and `async-generator`).
+Written in [Python](https://www.python.org/) and [FastAPI](https://fastapi.tiangolo.com/), the API is at the heart of every mneme setup, and lives in your server and manages your journals, entries, and user. The front-end apps communicate with this API, and can handle any of the work, so it seems seamless for the end user. Minimum Python version is 3.7, though it is possible to use 3.6 if you install `async-exit-stack` and `async-generator` as dependencies.
 
-It's simple in use in case you want to create your own app that uses it.
+The API can easily be used, so you could even make your own front-end app, or submit pull-requests or issues to ours!
 
 ## Features:
 * Create, delete, and update users
@@ -35,6 +34,8 @@ $ pip install -r requirements.txt
 $ python run.py
 ```
 
-
  ### License
  This project is licensed under the GPLv3 License. See the [LICENSE](https://github.com/Mneme-org/mneme-server/blob/master/LICENSE) file for the full license text.
+ 
+ ### Special Thanks
+ A special thank you to everyone in the Discord_Bots discord server for assisting is in an uncountable amount of ways, again, thank you!
