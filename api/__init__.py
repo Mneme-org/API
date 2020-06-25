@@ -12,6 +12,7 @@ from .classes import Configuration  # pylint: disable=wrong-import-position
 
 config = Configuration("config.ini")
 config.load()
-config.create_user()
 
 from .main import app  # pylint: disable=wrong-import-position
+
+config.create_user()
