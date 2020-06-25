@@ -1,16 +1,20 @@
 from typing import List, Optional
 from datetime import datetime
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..utils import parse_date
 from .. import schemas
 from ..models.models import Entry, Keyword, Journal
 from . import update_keywords
 
 
 def create_entry(db: Session, entry: schemas.EntryCreate, jrnl_id: int) -> Entry:
-    date = parse_date(entry.date)
+    try:
+        date = datetime.fromisoformat(entry.date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Wrong date format.")
+
     new_entry = Entry(jrnl_id=jrnl_id, short=entry.short, long=entry.long, date=date)
 
     db.add(new_entry)
@@ -35,7 +39,11 @@ def delete_entry(db: Session, entry: Entry) -> None:
 
 
 def update_entry(db: Session, updated_entry: schemas.EntryUpdate, entry_id: int) -> Entry:
-    date = parse_date(updated_entry.date)
+    try:
+        date = datetime.fromisoformat(updated_entry.date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Wrong date format.")
+
     db.query(Entry).filter(Entry.id == entry_id).update({
         "jrnl_id": updated_entry.jrnl_id,
         "short": updated_entry.short,

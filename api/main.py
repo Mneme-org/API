@@ -11,8 +11,8 @@ from . import models, schemas, crud
 from .utils import get_db, get_current_user, auth_user, generate_auth_token, parse_date
 from .database import engine
 
-models.Base.metadata.create_all(bind=engine)
 
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Mneme",

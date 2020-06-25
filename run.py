@@ -1,7 +1,5 @@
 import uvicorn
-from api.utils import read_config
-
-host, port, workers = read_config()
+from api import config
 
 if __name__ == "__main__":
-    uvicorn.run("api:app", host=host, port=port, log_level="info", workers=workers)
+    uvicorn.run("api:app", host=config.host, port=config.port, log_level="info", workers=config.workers)
