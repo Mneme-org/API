@@ -23,6 +23,7 @@ jobs:
 
     - stage: test
       install:
+        - cp example_config.ini config.ini
         - pip install --upgrade pip
         - pip install poetry
         - poetry install
