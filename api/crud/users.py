@@ -25,7 +25,13 @@ def create_user(db: Session, user: schemas.UserCreate) -> User:
 
     user_id = str(uuid.uuid4())
     username = user.username.lower()
-    new_user = User(username=username, hashed_password=hashed_password, id=user_id, encrypted=user.encrypted)
+    new_user = User(
+        username=username,
+        hashed_password=hashed_password,
+        id=user_id,
+        encrypted=user.encrypted,
+        admin=user.admin
+    )
 
     db.add(new_user)
     db.commit()

@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
-from . import models, schemas, crud
+from . import models, schemas, crud, config
 from .utils import get_db, get_current_user, auth_user, generate_auth_token, parse_date
 from .database import engine
 
@@ -35,8 +35,26 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": encoded_token}
 
 
-@app.post("/users/", response_model=schemas.User, status_code=201)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@app.post("/users/pub", response_model=schemas.User, status_code=201, name="Create User")
+def create_user_pub(*, user: schemas.UserCreate, db: Session = Depends(get_db)):
+    """This is the endpoint used if the instance is public so anyone can create an account."""
+    if not config.public:
+        raise HTTPException(status_code=400, detail="The instance is private.")
+
+    db_user = crud.get_user_by_username(db, name=user.username.lower())
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    else:
+        return crud.create_user(db=db, user=user)
+
+
+@app.post("/users/", response_model=schemas.User, status_code=201, name="Create User")
+def create_user(*, user: schemas.UserCreate, db: Session = Depends(get_db),
+                cur_user: models.User = Depends(get_current_user)):
+    """This is the endpoint used if the instance is private so only an admin can create accounts."""
+    if not cur_user.admin:
+        raise HTTPException(status_code=403, detail="Only an admin can create new users.")
+
     db_user = crud.get_user_by_username(db, name=user.username.lower())
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")

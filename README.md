@@ -5,19 +5,19 @@ essentially all other apps need to "talk" to it to get, create, or update your j
 
 It's simple in use in case you want to create your own app that uses it.
 
-## Features:
-* Create, delete, and update users
-* Create, delete, and update journals for users
-* Create, delete, and update entries for journals
-* Search function for keywords and dates
-* Optional Encryption (This is actually taken care of in the front end)
 
-## To do:
-* Way to reset password
-* Export to text files and other formats
-* Allow attaching photos or other files as well
-* Keep deleted entries for a while with option to delete instantly
-* Optional PostgreSQL database instead of SQLite
+## Road Map:
+* [x] Create, delete, and update users
+* [x] Create, delete, and update journals for users
+* [x] Create, delete, and update entries for journals
+* [x] Search function for keywords and dates
+* [x] Read from config file
+* [x] Only admin users can create accounts if the instance is private 
+* [ ] Keep deleted entries for a while with option to delete instantly
+* [ ] Way to reset password
+* [ ] Export to text files and other formats?
+* [ ] Allow attaching photos or other files as well?
+* [ ] Optional PostgreSQL database instead of SQLite?
 
 ## Installation:
 ```shell script

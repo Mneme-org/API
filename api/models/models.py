@@ -13,6 +13,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
 
     encrypted = Column(Boolean, default=False)
+    admin = Column(Boolean, default=False)
 
     journals = relationship("Journal", back_populates="user", cascade="delete")
 
@@ -42,6 +43,7 @@ class Entry(Base):
 
     journal = relationship('Journal', back_populates='entries')
     keywords = relationship("Keyword", backref="entry", cascade="delete")
+
 
 class Keyword(Base):
     __tablename__ = 'keyword'
