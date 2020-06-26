@@ -7,6 +7,8 @@ from sqlalchemy.orm import sessionmaker
 from ..main import app
 from ..database import Base
 from ..utils import get_db
+from ..crud import create_user
+from ..schemas import UserCreate
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
@@ -16,6 +18,9 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base.metadata.create_all(bind=engine)
+# Create the admin user since it's a private instance
+admin = UserCreate(username="admin", admin=True, encrypted=False, password="12345")
+create_user(TestingSessionLocal(), admin)
 
 
 def override_get_db():
@@ -30,10 +35,30 @@ app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
+def log_in(username: str, password: str):
+    r = client.post(
+        "/token",
+        data={"username": username, "password": password}
+    )
+    print(r.text)
+    data = r.json()
+    return "Bearer " + data["access_token"]
+
+
 def test_create_user():
     r = client.post(
         "/users/",
         json={"username": "test1", "password": "12345", "encrypted": True}
+    )
+    assert r.status_code == 401
+
+    # It's a private instance so we should authenticate
+    token = log_in("admin", "12345")
+
+    r = client.post(
+        "/users/",
+        json={"username": "test1", "password": "12345", "encrypted": True},
+        headers={"Authorization": token},
     )
 
     assert r.status_code == 201
@@ -52,15 +77,6 @@ def test_create_user():
     assert r.text is not None
     data = r.json()
     assert user_id in [user["id"] for user in data]
-
-
-def log_in(username: str, password: str):
-    r = client.post(
-        "/token",
-        data={"username": username, "password": password}
-    )
-    data = r.json()
-    return "Bearer " + data["access_token"]
 
 
 def create_entries(token: str):
@@ -356,7 +372,7 @@ def test_update_user():
     r = client.get("/users/")
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 1
+    assert len(data) == 2
     user_names = [user['username'] for user in data]
     assert "new_username" in user_names
     assert "test1" not in user_names
@@ -389,9 +405,11 @@ def test_update_user_password():
 
 
 def test_delete_user():
+    token = log_in("admin", "12345")
     r = client.post(
         "/users/",
-        json={"username": "test2", "password": "12345"}
+        json={"username": "test2", "password": "12345"},
+        headers={"Authorization": token}
     )
     assert r.status_code == 201
 
@@ -408,5 +426,5 @@ def test_delete_user():
     )
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 1
+    assert len(data) == 2
     assert "test2" not in [user['username'] for user in data]
