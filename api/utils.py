@@ -3,26 +3,16 @@ from datetime import datetime, timedelta
 import jwt
 from jwt.exceptions import PyJWTError
 from fastapi import Depends, status, HTTPException
-from sqlalchemy.orm import Session
 
 from . import crud, schemas, models, config
 from . import pwd_context, ALGORITHM, oauth2_scheme
-from .database import SessionLocal
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()  # pylint: disable=no-member
 
 
 def generate_auth_token(user_id: str, expires_delta: timedelta = None):
     expires = datetime.utcnow() + (expires_delta or timedelta(minutes=30))
 
     payload = {
-        'public_id': user_id,
+        'public_id': str(user_id),
         'exp': expires
     }
     encoded_token = jwt.encode(payload, config.secret, algorithm=ALGORITHM)
@@ -30,7 +20,7 @@ def generate_auth_token(user_id: str, expires_delta: timedelta = None):
     return encoded_token
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> models.User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -46,16 +36,16 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except PyJWTError:
         raise credentials_exception
 
-    user = crud.get_user_by_id(db, token_data.user_id)
+    user = await crud.get_user_by_id(token_data.user_id)
     if user is None:
         raise credentials_exception
     else:
         return user
 
 
-def auth_user(db: Session, username: str, password: str):
+async def auth_user(username: str, password: str):
     """returns False if not authenticated, else returns the models.User"""
-    user = crud.get_user_by_username(db, username)
+    user = await crud.get_user_by_username(username)
     if user is None:
         return False
 

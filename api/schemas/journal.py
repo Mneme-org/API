@@ -1,10 +1,10 @@
 from typing import List
-from pydantic import BaseModel  # pylint: disable=no-name-in-module
+from tortoise.contrib.pydantic import PydanticModel
 
 from . import Entry
 
 
-class JournalBase(BaseModel):
+class JournalBase(PydanticModel):
     name: str
 
 

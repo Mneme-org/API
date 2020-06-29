@@ -3,7 +3,6 @@ import configparser
 
 from api.schemas import UserCreate
 from api.crud import create_user, get_user_by_username
-from api.database import SessionLocal
 
 from . import Singleton
 
@@ -19,7 +18,11 @@ class Configuration(metaclass=Singleton):
         self._public: Optional[bool] = None
         self._host: str = "127.0.0.1"
         self._port: int = 8000
-        self._workers: Optional[int] = None
+        self._db_url: str = None
+
+    @property
+    def db_url(self):
+        return self._db_url
 
     @property
     def secret(self):
@@ -37,10 +40,6 @@ class Configuration(metaclass=Singleton):
     def port(self):
         return self._port
 
-    @property
-    def workers(self):
-        return self._workers
-
     def load(self):
         """Read and loads the configuration from the file.
             If it is run for a second time while the app is running only the secret
@@ -51,7 +50,6 @@ class Configuration(metaclass=Singleton):
 
         self._host = app.get("host", "127.0.0.1")
         self._port = app.getint("port", fallback=8000)
-        self._workers = app.getint("workers", fallback=2)
 
         self._public = app.getboolean("public", fallback=False)
         secret = app.get("secret")
@@ -60,13 +58,13 @@ class Configuration(metaclass=Singleton):
         else:
             self._secret = secret
 
-    def create_user(self) -> bool:
+        self._db_url = app.get("db url")
+
+    async def create_user(self) -> bool:
         """Create the admin user from the config file only if the instance is not public and the user doesn't exists.
            Return True if the user was created, else False"""
         if self.public:
             return False
-
-        db = SessionLocal()
 
         admin = self._config["Admin User"]
         username = admin.get("username", "admin")
@@ -74,7 +72,7 @@ class Configuration(metaclass=Singleton):
         if password is None:
             raise RuntimeError("No password found for admin user")
 
-        db_user = get_user_by_username(db, username)
+        db_user = await get_user_by_username(username)
         if db_user is None:
             user = UserCreate(
                 encrypted=admin.getboolean("encrypted", fallback=False),
@@ -82,9 +80,7 @@ class Configuration(metaclass=Singleton):
                 password=password,
                 admin=True
             )
-            create_user(db, user)
-            db.close()  # pylint: disable=no-member
+            await create_user(user)
             return True
         else:
-            db.close()  # pylint: disable=no-member
             return False

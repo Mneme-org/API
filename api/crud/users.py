@@ -1,63 +1,78 @@
-import uuid
 from typing import Optional, List
 
-from sqlalchemy.orm import Session
-
 from .. import schemas
-from ..models.models import User
+from ..models.models import User, Entry, Journal
 from .. import pwd_context
 
 
-def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
-    return db.query(User).filter(User.id == user_id).first()
+async def get_user_by_id(user_id: str) -> Optional[User]:
+    user = await User.get_or_none(id=user_id)
+    if user is not None:
+        await user.fetch_related("journals")
+        await Journal.fetch_for_list(list(user.journals), "entries")
+        for jrnl in user.journals:
+            await Entry.fetch_for_list(list(jrnl.entries), "keywords")
+
+    return user
 
 
-def get_user_by_username(db: Session, name: str) -> Optional[User]:
-    return db.query(User).filter(User.username == name).first()
+async def get_user_by_username(name: str) -> Optional[User]:
+    user = await User.get_or_none(username=name)
+    if user is not None:
+        await user.fetch_related("journals")
+        await Journal.fetch_for_list(list(user.journals), "entries")
+        for jrnl in user.journals:
+            await Entry.fetch_for_list(list(jrnl.entries), "keywords")
+
+    return user
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
-    return db.query(User).offset(skip).limit(limit).all()
+async def get_users(skip: int = 0, limit: int = 100) -> List[User]:
+    users = await User.all().offset(skip).limit(limit)
+    await User.fetch_for_list(users, "journals")
+    for user in users:
+        await Journal.fetch_for_list(list(user.journals), "entries")
+        for jrnl in user.journals:
+            await Entry.fetch_for_list(list(jrnl.entries), "keywords")
+
+    return users
 
 
-def create_user(db: Session, user: schemas.UserCreate) -> User:
+async def create_user(user: schemas.UserCreate) -> User:
     hashed_password = pwd_context.hash(user.password)
 
-    user_id = str(uuid.uuid4())
     username = user.username.lower()
-    new_user = User(
+    new_user = await User.create(
         username=username,
         hashed_password=hashed_password,
-        id=user_id,
         encrypted=user.encrypted,
         admin=user.admin
     )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    await new_user.fetch_related("journals")
+    for jrnl in new_user.journals:
+        await Journal.fetch_for_list(list(new_user.journals), "entries")
+        await Entry.fetch_for_list(list(jrnl.entries), "keywords")
 
     return new_user
 
 
-def delete_user(db: Session, user_id: str):
-    db_user = get_user_by_id(db, user_id)
-    db.delete(db_user)
-    db.commit()
+async def delete_user(user_id: str):
+    await User.filter(id=user_id).delete()
 
 
-def update_user(db: Session, db_user: User, new_username: Optional[str], encrypted: Optional[bool]) -> User:
+async def update_user(db_user: User, new_username: Optional[str], encrypted: Optional[bool]) -> User:
     if new_username is not None:
         db_user.username = new_username
     if encrypted is not None:
         db_user.encrypted = encrypted
 
-    db.commit()
+    await db_user.save()
     return db_user
 
 
-def update_user_password(db: Session, db_user: User, new_password: str):
+async def update_user_password(db_user: User, new_password: str):
     hashed_password = pwd_context.hash(new_password)
     db_user.hashed_password = hashed_password
 
-    db.commit()
+    await db_user.save()

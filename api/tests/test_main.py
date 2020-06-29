@@ -1,46 +1,40 @@
 import random
+import asyncio
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import pytest
+from tortoise.contrib.test import finalizer, initializer
 
-from ..main import app
-from ..database import Base
-from ..utils import get_db
-from ..crud import create_user
-from ..schemas import UserCreate
+from api import app
+from api.crud import create_user
+from api.schemas import UserCreate
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base.metadata.create_all(bind=engine)
-# Create the admin user since it's a private instance
-admin = UserCreate(username="admin", admin=True, encrypted=False, password="12345")
-create_user(TestingSessionLocal(), admin)
+loop = asyncio.get_event_loop()
 
 
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@pytest.fixture(scope="session", autouse=True)
+def init_db(request):
+    db_url = "sqlite://:memory:"
+    initializer(
+        ["api.models.models"],
+        db_url=db_url
+    )
+    # Create the admin user since it's a private instance
+    admin = UserCreate(username="admin", admin=True, encrypted=False, password="12345")
+    loop.run_until_complete(create_user(admin))
+
+    request.addfinalizer(finalizer)
 
 
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
 def log_in(username: str, password: str):
     r = client.post(
-        "/token",
+        "/login",
         data={"username": username, "password": password}
     )
-    print(r.text)
+
     data = r.json()
     return "Bearer " + data["access_token"]
 
@@ -77,6 +71,44 @@ def test_create_user():
     assert r.text is not None
     data = r.json()
     assert user_id in [user["id"] for user in data]
+
+
+def test_create_jrnl():
+    token = log_in("test1", "12345")
+
+    r = client.post(
+        "/journals/",
+        headers={"Authorization": token},
+        json={
+            "name": "journal_1"
+        }
+    )
+
+    assert r.status_code == 201
+    data = r.json()
+    assert data["name"] == "journal_1"
+    assert data["entries"] == []
+
+    client.post(
+        "/journals/",
+        headers={"Authorization": token},
+        json={
+            "name": "journal_2"
+        }
+    )
+
+
+def test_read_journals():
+    token = log_in("test1", "12345")
+
+    r = client.get(
+        "/journals/",
+        headers={"Authorization": token},
+    )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert "journal_1" in [jrnl["name"] for jrnl in data]
 
 
 def create_entries(token: str):
@@ -122,44 +154,6 @@ def create_entries(token: str):
     )
 
 
-def test_create_jrnl():
-    token = log_in("test1", "12345")
-
-    r = client.post(
-        "/journals/",
-        headers={"Authorization": token},
-        json={
-            "name": "journal_1"
-        }
-    )
-
-    assert r.status_code == 201
-    data = r.json()
-    assert data["name"] == "journal_1"
-    assert data["entries"] == []
-
-    client.post(
-        "/journals/",
-        headers={"Authorization": token},
-        json={
-            "name": "journal_2"
-        }
-    )
-
-
-def test_read_journals():
-    token = log_in("test1", "12345")
-
-    r = client.get(
-        "/journals/",
-        headers={"Authorization": token},
-    )
-
-    assert r.status_code == 200
-    data = r.json()
-    assert "journal_1" in [jrnl["name"] for jrnl in data]
-
-
 def test_read_journal():
     token = log_in("test1", "12345")
 
@@ -181,7 +175,7 @@ def test_create_entry_with_long():
         "/journals/journal_1/entries/",
         headers={"Authorization": token},
         json={
-            "short": "entry_1",
+            "short": "entry",
             "long": "a long text",
             "date": "2010-01-12",
             "keywords": []
@@ -190,7 +184,7 @@ def test_create_entry_with_long():
 
     assert r.status_code == 201
     data = r.json()
-    assert data["short"] == "entry_1"
+    assert data["short"] == "entry"
     assert data["long"] == "a long text"
     assert data["keywords"] == []
 
@@ -229,7 +223,8 @@ def test_find_entries():
     assert r.status_code == 200
     data = r.json()
     assert len(data) == 2
-    assert data[0]["short"] == "entry_1"
+    assert data[0]["id"] in [2, 4]
+    assert data[1]["id"] in [2, 4]
 
     r = client.get(
         "/journals/entries?keywords=word1&keywords=word+1&method=and",
@@ -248,9 +243,9 @@ def test_find_entries():
 
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 2
-    assert data[0]["short"] in ["entry_3", "entry_1"]
-    assert data[1]["short"] in ["entry_3", "entry_1"]
+    assert len(data) == 3
+    assert data[0]["short"] in ["entry_1", "entry_3"]
+    assert data[1]["short"] in ["entry_1", "entry_3"]
 
 
 def test_update_entry():
@@ -272,7 +267,7 @@ def test_update_entry():
             "long": "new long",
             "date": "2020-06-19",
             "keywords": [{"word": "an updated keyword"}],
-            "jrnl_id": jrnl["id"]
+            "journal_id": jrnl["id"]
         }
     )
 
@@ -393,12 +388,12 @@ def test_update_user_password():
     assert r.status_code == 204
 
     r = client.post(
-        "/token",
+        "/login",
         data={"username": "new_username", "password": "12345"}
     )
     assert r.status_code == 401
     r = client.post(
-        "/token",
+        "/login",
         data={"username": "new_username", "password": "54321"}
     )
     assert r.status_code == 200

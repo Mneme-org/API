@@ -3,7 +3,7 @@ from passlib.context import CryptContext
 
 security = HTTPBasic()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -14,5 +14,3 @@ config = Configuration("config.ini")
 config.load()
 
 from .main import app  # pylint: disable=wrong-import-position
-
-config.create_user()

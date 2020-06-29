@@ -1,7 +1,7 @@
-from pydantic import BaseModel  # pylint: disable=no-name-in-module
+from tortoise.contrib.pydantic import PydanticModel
 
 
-class KeywordBase(BaseModel):
+class KeywordBase(PydanticModel):
     word: str
 
 
