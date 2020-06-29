@@ -1,53 +1,46 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Boolean
-from sqlalchemy.orm import relationship
-
-from . import Base
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(String, primary_key=True, index=True)
-
-    username = Column(String, unique=True)
-    hashed_password = Column(String, nullable=False)
-
-    encrypted = Column(Boolean, default=False)
-    admin = Column(Boolean, default=False)
-
-    journals = relationship("Journal", back_populates="user", cascade="delete")
+from tortoise.fields import UUIDField, TextField, IntField, BooleanField, ReverseRelation, ForeignKeyRelation, \
+    ForeignKeyField, CASCADE, DatetimeField, CharField
+from tortoise.models import Model
 
 
-class Journal(Base):
-    __tablename__ = 'journals'
+class User(Model):
+    id = UUIDField(pk=True, index=True)
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(String, ForeignKey('users.id'))
-    name = Column(String, nullable=False)
-    name_lower = Column(String, nullable=False, index=True)
+    username = CharField(max_length=255, unique=True, index=True)
+    hashed_password = TextField(null=False)
 
-    user = relationship('User', back_populates='journals')
-    entries = relationship('Entry', back_populates='journal', cascade="delete")
+    encrypted = BooleanField(default=False)
+    admin = BooleanField(default=False)
+
+    journals: ReverseRelation["Journal"]
 
 
-class Entry(Base):
-    __tablename__ = 'entries'
+class Journal(Model):
+    id = IntField(pk=True, index=True)
 
-    id = Column(Integer, primary_key=True, index=True)
-    jrnl_id = Column(Integer, ForeignKey('journals.id'))
-    short = Column(String, nullable=False)
-    long = Column(String, nullable=True)
+    user: ForeignKeyRelation[User] = ForeignKeyField("models.User", related_name="journals", on_delete=CASCADE)
+
+    name = TextField(null=False)
+    name_lower = TextField(null=False)
+
+    entries: ReverseRelation["Entry"]
+
+
+class Entry(Model):
+    id = IntField(pk=True, index=True)
+
+    journal: ForeignKeyRelation[Journal] = ForeignKeyField("models.Journal", related_name="entries", on_delete=CASCADE)
+
+    short = TextField(null=False)
+    long = TextField(null=False)
 
     # YYYY-MM-DD HH:MM format in UTC timezone
-    date = Column(DateTime, nullable=False)
+    date = DatetimeField(null=False)
 
-    journal = relationship('Journal', back_populates='entries')
-    keywords = relationship("Keyword", backref="entry", cascade="delete")
+    keywords: ReverseRelation["Keyword"]
 
 
-class Keyword(Base):
-    __tablename__ = 'keyword'
-
-    id = Column(Integer, primary_key=True)
-    entry_id = Column(Integer, ForeignKey('entries.id'))
-    word = Column(String, nullable=False)
+class Keyword(Model):
+    id = IntField(pk=True)
+    entry: ForeignKeyRelation[Entry] = ForeignKeyField("models.Entry", related_name="keywords", on_delete=CASCADE)
+    word = TextField(null=False)

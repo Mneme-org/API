@@ -1,10 +1,11 @@
 from typing import List
-from pydantic import BaseModel  # pylint: disable=no-name-in-module
+from tortoise.contrib.pydantic import PydanticModel
+# from pydantic import BaseModel  # pylint: disable=no-name-in-module
 
 from . import Journal
 
 
-class UserBase(BaseModel):
+class UserBase(PydanticModel):
     encrypted: bool = False
     username: str
     # This is only needed if the instance is private, otherwise there are no admins
@@ -16,7 +17,7 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    id: str
+    id: int
 
     journals: List[Journal] = []
 
@@ -24,7 +25,12 @@ class User(UserBase):
         orm_mode = True
 
 
-class UserPassword(BaseModel):
+class UserPassword(PydanticModel):
     """For updating the user password"""
     current_password: str
     new_password: str
+
+
+class PubUser(UserBase):
+    journals: List[Journal] = []
+    id: int

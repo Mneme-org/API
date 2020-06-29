@@ -1,11 +1,12 @@
 from typing import List
 from datetime import datetime
-from pydantic import BaseModel  # pylint: disable=no-name-in-module
+from tortoise.contrib.pydantic import PydanticModel
+# from pydantic import BaseModel  # pylint: disable=no-name-in-module
 
 from . import Keyword, KeywordCreate
 
 
-class EntryBase(BaseModel):
+class EntryBase(PydanticModel):
     short: str
     long: str = ""
     # YYYY-MM-DD HH:MM format in UTC timezone
@@ -18,12 +19,12 @@ class EntryCreate(EntryBase):
 
 class EntryUpdate(EntryBase):
     keywords: List[KeywordCreate]
-    jrnl_id: int
+    journal_id: int
 
 
 class Entry(EntryBase):
     id: int
-    jrnl_id: int
+    journal_id: int
     keywords: List[Keyword] = []
     date: datetime
 
