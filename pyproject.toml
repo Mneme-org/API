@@ -26,7 +26,7 @@ requests = "^2.23"
 ignore = ["tests"]
 # Disable missing doc-strings,
 # Unnecessary "else" after "raise/return",
-disable = ["C0114", "C0115", "C0116", "R1705", "R1720", "W0511", "R0401"]
+disable = ["C0114", "C0115", "C0116", "R1705", "R1720", "W0511", "R0401", "R0902"]
 load-plugins = ["tortoise.contrib.pylint"]
 
 [tool.pylint.basic]

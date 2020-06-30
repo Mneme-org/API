@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import HTTPException
 from tortoise.query_utils import Q
@@ -11,11 +11,11 @@ from . import update_keywords
 
 async def create_entry(entry: schemas.EntryCreate, jrnl_id: int) -> Entry:
     try:
-        date = datetime.fromisoformat(entry.date)
+        date_ = datetime.fromisoformat(entry.date)
     except ValueError:
         raise HTTPException(status_code=400, detail="Wrong date format.")
 
-    new_entry = Entry(journal_id=jrnl_id, short=entry.short, long=entry.long, date=date)
+    new_entry = Entry(journal_id=jrnl_id, short=entry.short, long=entry.long, date=date_)
     await new_entry.save()
     for kw in entry.keywords:
         await Keyword(entry_id=new_entry.id, word=kw.word.lower()).save()
@@ -24,21 +24,54 @@ async def create_entry(entry: schemas.EntryCreate, jrnl_id: int) -> Entry:
     return new_entry
 
 
-async def get_entry_by_id(entry_id: int) -> Optional[Entry]:
-    entry = await Entry.get_or_none(id=entry_id)
+async def get_entry_by_id(entry_id: int, deleted: bool = False) -> Optional[Entry]:
+    if deleted:
+        # Don't care if an entry is marked for deletion
+        entry = await Entry.get_or_none(id=entry_id)
+    else:
+        entry = await Entry.get_or_none(id=entry_id, deleted_on=None)
+
     if entry is not None:
         await entry.fetch_related("keywords")
 
     return entry
 
 
-async def delete_entry(entry: Entry) -> None:
-    await entry.delete()
+async def get_entry_by_short(entry_short: str, jrnl_id: int, deleted: bool = False) -> Optional[Entry]:
+    if deleted:
+        # Don't care if an entry is marked for deletion
+        entry = await Entry.get_or_none(short=entry_short, journal_id=jrnl_id)
+    else:
+        entry = await Entry.get_or_none(short=entry_short, journal_id=jrnl_id, deleted_on=None)
+
+    if entry is not None:
+        await entry.fetch_related("keywords")
+
+    return entry
+
+
+async def delete_entry(entry: Entry, now: Optional[bool] = False) -> None:
+    if now:
+        await entry.delete()
+    else:
+        entry.deleted_on = date.today()
+        await entry.save()
+
+
+async def undelete_entry(entry: Entry, new_short: Optional[str] = None) -> Entry:
+    entry.deleted_on = None
+    if new_short is not None:
+        # In case there is a new entry with that short, we need to change this.
+        entry.short = new_short
+
+    await entry.save()
+    await entry.fetch_related("keywords")
+    return entry
 
 
 async def update_entry(updated_entry: schemas.EntryUpdate, entry_id: int) -> Entry:
     try:
-        date = datetime.fromisoformat(updated_entry.date)
+        date_ = datetime.fromisoformat(updated_entry.date)
     except ValueError:
         raise HTTPException(status_code=400, detail="Wrong date format.")
 
@@ -46,7 +79,7 @@ async def update_entry(updated_entry: schemas.EntryUpdate, entry_id: int) -> Ent
     entry.journal_id = updated_entry.journal_id
     entry.short = updated_entry.short
     entry.long = updated_entry.long
-    entry.date = date
+    entry.date = date_
     await entry.save()
 
     await update_keywords(updated_entry.keywords, entry_id)
@@ -57,8 +90,11 @@ async def update_entry(updated_entry: schemas.EntryUpdate, entry_id: int) -> Ent
 
 async def get_entries(user_id: int, params, keywords: List[str],
                       date_min: datetime, date_max: datetime,
-                      jrnl_id: Optional[int]) -> List[Entry]:
-    query = Entry.filter(journal__user_id=user_id)
+                      jrnl_id: Optional[int], deleted: bool = False) -> List[Entry]:
+    if deleted:
+        query = Entry.filter(journal__user_id=user_id)
+    else:
+        query = Entry.filter(journal__user_id=user_id, deleted_on=None)
 
     if jrnl_id:
         query = query.filter(journal_id=jrnl_id)

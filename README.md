@@ -12,7 +12,7 @@ The API can easily be used, so you could even make your own front-end app, or su
 * [x] Search function for keywords and dates
 * [x] Read from config file
 * [x] Only admin users can create accounts if the instance is private 
-* [ ] Keep deleted entries for a while with option to delete instantly
+* [x] Keep deleted entries and journals for a while with option to delete instantly
 * [ ] Way to reset password
 * [ ] Export to text files and other formats?
 * [ ] Allow attaching photos or other files as well?

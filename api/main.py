@@ -1,14 +1,15 @@
-from typing import List
+import asyncio
 from datetime import timedelta
+from typing import List, Optional
 
+from tortoise import Tortoise
 from fastapi import FastAPI, Query
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from tortoise import Tortoise
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
 from . import models, schemas, crud, config
-from .utils import get_current_user, auth_user, generate_auth_token, parse_date
+from .utils import get_current_user, auth_user, generate_auth_token, parse_date, clean_db
 
 app = FastAPI(
     title="Mneme",
@@ -24,6 +25,8 @@ async def startup():
     )
     await Tortoise.generate_schemas()
     await config.create_user()
+
+    _ = asyncio.create_task(clean_db())
 
 
 @app.on_event("shutdown")
@@ -123,8 +126,8 @@ async def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depend
 
 
 @app.get("/journals/{jrnl_name}/", response_model=schemas.Journal, name="Fetch Journal")
-async def read_journal(jrnl_name: str, user: models.User = Depends(get_current_user)):
-    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower())
+async def read_journal(jrnl_name: str, user: models.User = Depends(get_current_user), deleted: bool = False):
+    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower(), deleted=deleted)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
     else:
@@ -132,18 +135,38 @@ async def read_journal(jrnl_name: str, user: models.User = Depends(get_current_u
 
 
 @app.get("/journals/", response_model=List[schemas.Journal], name="Fetch Journals")
-async def read_journals(skip: int = 0, limit: int = 100, user: models.User = Depends(get_current_user)):
-    jrnls = await crud.get_journals_for(user, skip=skip, limit=limit)
+async def read_journals(skip: int = 0, limit: int = 100,
+                        user: models.User = Depends(get_current_user), deleted: bool = False):
+    jrnls = await crud.get_journals_for(user, skip=skip, limit=limit, deleted=deleted)
     return jrnls
 
 
 @app.delete("/journals/{jrnl_name}/", status_code=204)
-async def delete_journal(*, user: models.User = Depends(get_current_user), jrnl_name: str):
-    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower())
+async def delete_journal(*, user: models.User = Depends(get_current_user), jrnl_name: str,
+                         now: bool = False, deleted: bool = False):
+    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower(), deleted=deleted)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
-    await crud.delete_journal(db_jrnl)
+    await crud.delete_journal(db_jrnl, now)
+
+
+@app.post("/journals/revive", response_model=schemas.Journal)
+async def revive_journal(jrnl_id: int, new_name: Optional[str] = None, user: models.User = Depends(get_current_user)):
+    """Bring back journals and their entries that haven't been completely deleted yet. """
+    deleted_jrnl = await crud.get_jrnl_by_id(user.id, jrnl_id, deleted=True)
+    if deleted_jrnl is None:
+        raise HTTPException(status_code=404, detail="There is no journal with that name")
+    if await crud.get_jrnl_by_name(user.id, deleted_jrnl.name.lower(), deleted=False) and not new_name:
+        # If there is a not a new name provided and a journal already exists with that name
+        detail = "There is a new journal with that name, you will have to enter a new name."
+        raise HTTPException(status_code=400, detail=detail)
+    elif new_name is not None and await crud.get_jrnl_by_name(user.id, new_name.lower(), deleted=False):
+        # If there is a new name provided but a journal already exists with that name
+        detail = "A journal with the new name already exists, please give another."
+        raise HTTPException(status_code=400, detail=detail)
+    else:
+        return await crud.undelete_journal(deleted_jrnl, new_name)
 
 
 @app.put("/journals/{jrnl_name}/", response_model=schemas.Journal)
@@ -174,29 +197,53 @@ async def create_entry(*, jrnl_name: str, user: models.User = Depends(get_curren
 
 
 @app.get("/journals/{jrnl_name}/{entry_id}", response_model=schemas.Entry)
-async def read_entry(*, user: models.User = Depends(get_current_user), jrnl_name: str, entry_id: int):
-    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name)
+async def read_entry(*, user: models.User = Depends(get_current_user), jrnl_name: str,
+                     entry_id: int, deleted: bool = False):
+    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name, deleted=deleted)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
-    entry_db = await crud.get_entry_by_id(entry_id)
-    if entry_db is None or entry_db.journal_id != db_jrnl.id:
+    entry_db = await crud.get_entry_by_id(entry_id, deleted=deleted)
+    if entry_db is None or entry_db.journal.id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
     else:
         return entry_db
 
 
 @app.delete("/journals/{jrnl_name}/{entry_id}", status_code=204)
-async def delete_entry(*, user: models.User = Depends(get_current_user), jrnl_name: str, entry_id: int):
-    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name)
+async def delete_entry(*, user: models.User = Depends(get_current_user),
+                       jrnl_name: str, entry_id: int, now: bool = False, deleted: bool = False):
+    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name, deleted=deleted)
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
-    entry_db = await crud.get_entry_by_id(entry_id)
-    if entry_db is None or entry_db.journal_id != db_jrnl.id:
+    entry_db = await crud.get_entry_by_id(entry_id, deleted=deleted)
+    if entry_db is None or entry_db.journal.id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
-    await crud.delete_entry(entry_db)
+    await crud.delete_entry(entry_db, now)
+
+
+@app.post("/journals/entries/revive", response_model=schemas.Entry)
+async def revive_entry(entry_id: int, new_short: Optional[str] = None, user: models.User = Depends(get_current_user)):
+    """Bring back journals and their entries that haven't been completely deleted yet. """
+    db_entry = await crud.get_entry_by_id(entry_id, deleted=True)
+    if db_entry is None:
+        raise HTTPException(status_code=404, detail="No entry found with that id.")
+    if db_entry.deleted_on is None:
+        raise HTTPException(status_code=400, detail="This entry is not deleted")
+
+    short = new_short or db_entry.short
+    if await crud.get_entry_by_short(short.lower(), db_entry.journal_id):
+        raise HTTPException(status_code=400, detail="There already exists and entry with that short in the journal.")
+
+    db_jrnl = await crud.get_jrnl_by_id(user.id, await db_entry.journal_id, deleted=True)
+    if db_jrnl.deleted_on is not None:
+        if await crud.get_jrnl_by_name(user.id, db_jrnl.name_lower, deleted=False):
+            raise HTTPException(status_code=400, detail="A new journal with its name exists.")
+        await crud.undelete_journal(db_jrnl)
+
+    return await crud.undelete_entry(db_entry, short)
 
 
 @app.put("/journals/{jrnl_name}/{entry_id}", response_model=schemas.Entry)
@@ -215,7 +262,7 @@ async def update_entry(*, user: models.User = Depends(get_current_user), jrnl_na
 
     # Check entry_id belongs to current user
     entry_db = await crud.get_entry_by_id(entry_id)
-    if entry_db is None or entry_db.journal_id != db_jrnl.id:
+    if entry_db is None or entry_db.journal.id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
     return await crud.update_entry(updated_entry, entry_id)
@@ -223,7 +270,7 @@ async def update_entry(*, user: models.User = Depends(get_current_user), jrnl_na
 
 @app.get("/journals/entries", response_model=List[schemas.Entry], name="Find entries")
 async def find_entry(*, user: models.User = Depends(get_current_user),
-                     params: schemas.Params = Depends(None), keywords: List[str] = Query(...)):
+                     params: schemas.Params = Depends(None), keywords: List[str] = Query(...), deleted: bool = False):
     """Method parameter is either 'and', or 'or' and it translates to whether it should look for entries
        that have all the keywords, or at least one of them"""
     if params.date_min is None:
@@ -236,7 +283,7 @@ async def find_entry(*, user: models.User = Depends(get_current_user),
         date_max = parse_date(params.date_max)
 
     if params.jrnl_name is not None:
-        db_jrnl = await crud.get_jrnl_by_name(user.id, params.jrnl_name)
+        db_jrnl = await crud.get_jrnl_by_name(user.id, params.jrnl_name, deleted=deleted)
         if db_jrnl is None:
             raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
         else:
@@ -246,6 +293,6 @@ async def find_entry(*, user: models.User = Depends(get_current_user),
 
     if params.method in ["or", "and"]:
         # We pass date_min and date_max because now they are datetime objects, not strings
-        return await crud.get_entries(user.id, params, keywords, date_min, date_max, jrnl_id)
+        return await crud.get_entries(user.id, params, keywords, date_min, date_max, jrnl_id, deleted=deleted)
     else:
         raise HTTPException(status_code=400, detail="Method parameter can only be 'and' or 'or'.")
