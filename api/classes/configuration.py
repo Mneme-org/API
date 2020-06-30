@@ -18,7 +18,12 @@ class Configuration(metaclass=Singleton):
         self._public: Optional[bool] = None
         self._host: str = "127.0.0.1"
         self._port: int = 8000
-        self._db_url: str = None
+        self._db_url: str = "sqlite://./api/mneme.db"
+        self._delete_after: int = 7
+
+    @property
+    def delete_after(self):
+        return self._delete_after
 
     @property
     def db_url(self):
@@ -59,6 +64,7 @@ class Configuration(metaclass=Singleton):
             self._secret = secret
 
         self._db_url = app.get("db url")
+        self._delete_after = app.getint("delete after", fallback=7)
 
     async def create_user(self) -> bool:
         """Create the admin user from the config file only if the instance is not public and the user doesn't exists.

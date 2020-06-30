@@ -32,5 +32,4 @@ class UserPassword(PydanticModel):
 
 
 class PubUser(UserBase):
-    journals: List[Journal] = []
     id: int

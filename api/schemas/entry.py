@@ -1,7 +1,6 @@
-from typing import List
-from datetime import datetime
+from typing import List, Optional
+import datetime as dt
 from tortoise.contrib.pydantic import PydanticModel
-# from pydantic import BaseModel  # pylint: disable=no-name-in-module
 
 from . import Keyword, KeywordCreate
 
@@ -26,7 +25,8 @@ class Entry(EntryBase):
     id: int
     journal_id: int
     keywords: List[Keyword] = []
-    date: datetime
+    date: dt.datetime
+    deleted_on: Optional[dt.date] = None
 
     class Config:
         orm_mode = True

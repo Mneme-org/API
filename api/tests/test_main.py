@@ -297,7 +297,7 @@ def test_delete_entry():
     entry = random.choice(jrnl["entries"])
 
     r = client.delete(
-        f"/journals/{jrnl['name']}/{entry['id']}",
+        f"/journals/{jrnl['name']}/{entry['id']}?now=true",
         headers={"Authorization": token}
     )
 
@@ -340,7 +340,7 @@ def test_update_journal():
 def test_delete_journal():
     token = log_in("test1", "12345")
     r = client.delete(
-        "/journals/some%20name/",
+        "/journals/some%20name/?now=true",
         headers={"Authorization": token}
     )
     assert r.status_code == 204

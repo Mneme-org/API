@@ -1,5 +1,5 @@
 from tortoise.fields import UUIDField, TextField, IntField, BooleanField, ReverseRelation, ForeignKeyRelation, \
-    ForeignKeyField, CASCADE, DatetimeField, CharField
+    ForeignKeyField, CASCADE, DatetimeField, CharField, DateField
 from tortoise.models import Model
 
 
@@ -23,6 +23,9 @@ class Journal(Model):
     name = TextField(null=False)
     name_lower = TextField(null=False)
 
+    # YYYY-MM-DD or None
+    deleted_on = DateField(null=True)
+
     entries: ReverseRelation["Entry"]
 
 
@@ -36,6 +39,8 @@ class Entry(Model):
 
     # YYYY-MM-DD HH:MM format in UTC timezone
     date = DatetimeField(null=False)
+    # YYYY-MM-DD or None
+    deleted_on = DateField(null=True)
 
     keywords: ReverseRelation["Keyword"]
 

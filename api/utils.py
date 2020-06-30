@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+import asyncio
+from datetime import datetime, timedelta, date
 
 import jwt
 from jwt.exceptions import PyJWTError
@@ -6,6 +7,9 @@ from fastapi import Depends, status, HTTPException
 
 from . import crud, schemas, models, config
 from . import pwd_context, ALGORITHM, oauth2_scheme
+
+
+HOUR = 3600
 
 
 def generate_auth_token(user_id: str, expires_delta: timedelta = None):
@@ -55,8 +59,20 @@ async def auth_user(username: str, password: str):
         return False
 
 
-def parse_date(date: str) -> datetime:
+def parse_date(date_: str) -> datetime:
     try:
-        return datetime.fromisoformat(date)
+        return datetime.fromisoformat(date_)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Wrong date format.")
+
+
+async def clean_db() -> None:
+    """Cleans the databases of entries and journals marked as "delete" older than (by default) one week"""
+    delete_after_days: int = config.delete_after
+    while True:
+        week_ago = date.today() - timedelta(days=delete_after_days)
+
+        await models.Journal.filter(deleted_on__lt=week_ago).delete()
+        await models.Entry.filter(deleted_on__lt=week_ago).delete()
+
+        await asyncio.sleep(HOUR * 2)

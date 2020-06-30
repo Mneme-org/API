@@ -1,17 +1,14 @@
 from typing import Optional, List
 
 from .. import schemas
-from ..models.models import User, Entry, Journal
+from ..models.models import User
 from .. import pwd_context
 
 
 async def get_user_by_id(user_id: str) -> Optional[User]:
     user = await User.get_or_none(id=user_id)
     if user is not None:
-        await user.fetch_related("journals")
-        await Journal.fetch_for_list(list(user.journals), "entries")
-        for jrnl in user.journals:
-            await Entry.fetch_for_list(list(jrnl.entries), "keywords")
+        await user.fetch_related("journals__entries__keywords")
 
     return user
 
@@ -19,10 +16,7 @@ async def get_user_by_id(user_id: str) -> Optional[User]:
 async def get_user_by_username(name: str) -> Optional[User]:
     user = await User.get_or_none(username=name)
     if user is not None:
-        await user.fetch_related("journals")
-        await Journal.fetch_for_list(list(user.journals), "entries")
-        for jrnl in user.journals:
-            await Entry.fetch_for_list(list(jrnl.entries), "keywords")
+        await user.fetch_related("journals__entries__keywords")
 
     return user
 
@@ -31,9 +25,7 @@ async def get_users(skip: int = 0, limit: int = 100) -> List[User]:
     users = await User.all().offset(skip).limit(limit)
     await User.fetch_for_list(users, "journals")
     for user in users:
-        await Journal.fetch_for_list(list(user.journals), "entries")
-        for jrnl in user.journals:
-            await Entry.fetch_for_list(list(jrnl.entries), "keywords")
+        await user.fetch_related("journals__entries__keywords")
 
     return users
 
@@ -49,10 +41,7 @@ async def create_user(user: schemas.UserCreate) -> User:
         admin=user.admin
     )
 
-    await new_user.fetch_related("journals")
-    for jrnl in new_user.journals:
-        await Journal.fetch_for_list(list(new_user.journals), "entries")
-        await Entry.fetch_for_list(list(jrnl.entries), "keywords")
+    await new_user.fetch_related("journals__entries__keywords")
 
     return new_user
 
