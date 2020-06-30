@@ -204,7 +204,7 @@ async def read_entry(*, user: models.User = Depends(get_current_user), jrnl_name
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
     entry_db = await crud.get_entry_by_id(entry_id, deleted=deleted)
-    if entry_db is None or entry_db.journal.id != db_jrnl.id:
+    if entry_db is None or entry_db.journal_id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
     else:
         return entry_db
@@ -218,7 +218,7 @@ async def delete_entry(*, user: models.User = Depends(get_current_user),
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
     entry_db = await crud.get_entry_by_id(entry_id, deleted=deleted)
-    if entry_db is None or entry_db.journal.id != db_jrnl.id:
+    if entry_db is None or entry_db.journal_id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
     await crud.delete_entry(entry_db, now)
@@ -262,7 +262,7 @@ async def update_entry(*, user: models.User = Depends(get_current_user), jrnl_na
 
     # Check entry_id belongs to current user
     entry_db = await crud.get_entry_by_id(entry_id)
-    if entry_db is None or entry_db.journal.id != db_jrnl.id:
+    if entry_db is None or entry_db.journal_id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
     return await crud.update_entry(updated_entry, entry_id)
