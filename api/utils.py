@@ -1,4 +1,7 @@
+import os
+import time
 import asyncio
+from pathlib import Path
 from datetime import datetime, timedelta, date
 
 import jwt
@@ -76,3 +79,38 @@ async def clean_db() -> None:
         await models.Entry.filter(deleted_on__lt=week_ago).delete()
 
         await asyncio.sleep(HOUR * 2)
+
+
+async def clean_backups() -> None:
+    """Clean backups older than two weeks old"""
+    backups_dir = Path("./api/backups")
+    backups_dir.mkdir(exist_ok=True)
+
+    two_weeks = HOUR * 24 * 7 * 2
+
+    while True:
+        now = int(time.time())
+        for item in backups_dir.iterdir():
+            if item.suffix != ".db":
+                continue
+
+            taken = item.stem
+            try:
+                taken = int(taken)
+            except ValueError:
+                continue
+
+            if now - two_weeks > taken:
+                os.remove(str(item.resolve()))
+
+        await asyncio.sleep(HOUR * 5)
+
+
+async def auto_backup() -> None:
+    """Create a backup of the database every 24 hours"""
+    backups_dir = Path("./api/backups")
+    backups_dir.mkdir(exist_ok=True)
+
+    while True:
+        await crud.backup()
+        await asyncio.sleep(HOUR * 24)
