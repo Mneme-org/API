@@ -136,3 +136,4 @@ poetry.lock
 api/mneme.db
 test.db
 config.ini
+/api/backups

@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
 from . import models, schemas, crud, config
-from .utils import get_current_user, auth_user, generate_auth_token, parse_date, clean_db
+from .utils import get_current_user, auth_user, generate_auth_token, parse_date, clean_db, clean_backups, auto_backup
 
 app = FastAPI(
     title="Mneme",
@@ -27,6 +27,8 @@ async def startup():
     await config.create_user()
 
     _ = asyncio.create_task(clean_db())
+    _ = asyncio.create_task(clean_backups())
+    _ = asyncio.create_task(auto_backup())
 
 
 @app.on_event("shutdown")
@@ -296,3 +298,12 @@ async def find_entry(*, user: models.User = Depends(get_current_user),
         return await crud.get_entries(user.id, params, keywords, date_min, date_max, jrnl_id, deleted=deleted)
     else:
         raise HTTPException(status_code=400, detail="Method parameter can only be 'and' or 'or'.")
+
+
+@app.post("/backup", status_code=204)
+async def backup(user: models.User = Depends(get_current_user)):
+    """Create backup of the database. This is automatically done every 24 hours as well"""
+    if not user.admin:
+        raise HTTPException(status_code=401, detail="Only admin users can do that.")
+    else:
+        await crud.backup()
