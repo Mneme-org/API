@@ -1,4 +1,4 @@
-aiosqlite==0.13.0
+aiosqlite==0.14.0
 astroid==2.4.2
 asynctest==0.13.0
 attrs==19.3.0
@@ -27,7 +27,7 @@ pydantic==1.5.1
 PyJWT==1.7.1
 pylint==2.5.3
 pyparsing==2.4.7
-PyPika==0.37.11
+PyPika==0.37.16
 pytest==5.4.3
 python-multipart==0.0.5
 requests==2.24.0

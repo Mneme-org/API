@@ -23,6 +23,4 @@ async def backup() -> None:
 
     async with aiosqlite.connect(f"./api/backups/{now}.db") as dest:
         async with client.acquire_connection() as conn:
-            sqlite3_conn = conn._conn  # pylint: disable=protected-access
-            sqlite3_dest = dest._conn  # pylint: disable=protected-access
-            sqlite3_conn.backup(target=sqlite3_dest, pages=5)
+            await conn.backup(target=dest, pages=5)
