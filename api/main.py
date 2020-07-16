@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
 from . import models, schemas, crud, config
 from .utils import get_current_user, auth_user, generate_auth_token, parse_date, clean_db, clean_backups, auto_backup
+from .classes import InstanceType
 
 app = FastAPI(
     title="Mneme",
@@ -61,7 +62,7 @@ async def token(auth_data: schemas.AuthUser):
 @app.post("/users/pub", response_model=schemas.User, status_code=201, name="Create User")
 async def create_user_pub(*, user: schemas.UserCreate):
     """This is the endpoint used if the instance is public so anyone can create an account."""
-    if not config.public:
+    if config.instance is InstanceType.PRIVATE:
         raise HTTPException(status_code=400, detail="The instance is private.")
 
     db_user = await crud.get_user_by_username(name=user.username.lower())
@@ -127,6 +128,12 @@ async def update_password(*, user: models.User = Depends(get_current_user), user
 
 @app.post('/journals/', response_model=schemas.Journal, status_code=201)
 async def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user)):
+    if config.instance is InstanceType.COMMERCIAL and user.tier == 0:
+        # free tier
+        if len(await crud.get_journals_for(user)) >= 2:
+            detail = "Free users in commercial instances can have up to 2 journals."
+            return HTTPException(status_code=403, detail=detail)
+
     db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl.name)
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")

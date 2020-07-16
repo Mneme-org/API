@@ -5,7 +5,7 @@ from api.schemas import UserCreate
 from api.crud import create_user, get_user_by_username
 
 from . import Singleton
-
+from . import InstanceType
 
 class Configuration(metaclass=Singleton):
     """A configuration singleton to hold things like the secret, if the server is public or not etc"""
@@ -15,8 +15,8 @@ class Configuration(metaclass=Singleton):
         self._config = configparser.ConfigParser()
 
         self._secret: Optional[str] = None
-        self._public: Optional[bool] = None
-        self._host: str = "127.0.0.1"
+        self._instance: InstanceType = InstanceType.PRIVATE
+        self._host: str = "0.0.0.0"
         self._port: int = 8000
         self._db_url: str = "sqlite://./api/mneme.db"
         self._delete_after: int = 7
@@ -34,8 +34,8 @@ class Configuration(metaclass=Singleton):
         return self._secret
 
     @property
-    def public(self):
-        return self._public
+    def instance(self):
+        return self._instance
 
     @property
     def host(self):
@@ -48,15 +48,20 @@ class Configuration(metaclass=Singleton):
     def load(self):
         """Read and loads the configuration from the file.
             If it is run for a second time while the app is running only the secret
-            and if the instance is public or not will change."""
+            and if the instance is private, public or commercial will change."""
         self._config.read(self.file)
 
         app = self._config["App"]
 
-        self._host = app.get("host", "127.0.0.1")
+        self._host = app.get("host", "0.0.0.0")
         self._port = app.getint("port", fallback=8000)
 
-        self._public = app.getboolean("public", fallback=False)
+        _instance = app.get("instance", "private")
+        if _instance == "public":
+            self._instance = InstanceType.PUBLIC
+        elif _instance == "commercial":
+            self._instance = InstanceType.COMMERCIAL
+
         secret = app.get("secret")
         if secret is None:
             raise RuntimeError("No secret found")
@@ -67,11 +72,8 @@ class Configuration(metaclass=Singleton):
         self._delete_after = app.getint("delete after", fallback=7)
 
     async def create_user(self) -> bool:
-        """Create the admin user from the config file only if the instance is not public and the user doesn't exists.
+        """Create the admin user from the config file if he doesn't exists.
            Return True if the user was created, else False"""
-        if self.public:
-            return False
-
         admin = self._config["Admin User"]
         username = admin.get("username", "admin")
         password = admin.get("password", None)
