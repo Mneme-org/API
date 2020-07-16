@@ -6,6 +6,7 @@ from tortoise import Tortoise
 from fastapi import FastAPI, Query
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
 from . import models, schemas, crud, config
@@ -16,6 +17,13 @@ app = FastAPI(
     description="A self-hosted multi-platform journal keeping app"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 async def startup():
