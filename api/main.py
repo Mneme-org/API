@@ -128,6 +128,12 @@ async def update_password(*, user: models.User = Depends(get_current_user), user
 
 @app.post('/journals/', response_model=schemas.Journal, status_code=201)
 async def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user)):
+    if config.instance is InstanceType.COMMERCIAL and user.tier == 0:
+        # free tier
+        if len(await crud.get_journals_for(user)) >= 2:
+            detail = "Free users in commercial instances can have up to 2 journals."
+            return HTTPException(status_code=403, detail=detail)
+
     db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl.name)
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")
