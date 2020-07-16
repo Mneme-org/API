@@ -5,7 +5,6 @@ from typing import List, Optional
 from tortoise import Tortoise
 from fastapi import FastAPI, Query
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
@@ -45,8 +44,8 @@ async def shutdown():
 
 
 @app.post("/login", response_model=schemas.Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await auth_user(form_data.username.lower(), form_data.password)
+async def token(auth_data: schemas.AuthUser):
+    user = await auth_user(auth_data.username.lower(), auth_data.password)
 
     if not user:
         raise HTTPException(

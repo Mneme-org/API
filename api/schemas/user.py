@@ -1,6 +1,5 @@
 from typing import List
 from tortoise.contrib.pydantic import PydanticModel
-# from pydantic import BaseModel  # pylint: disable=no-name-in-module
 
 from . import Journal
 
@@ -10,6 +9,12 @@ class UserBase(PydanticModel):
     username: str
     # This is only needed if the instance is private, otherwise there are no admins
     admin: bool = False
+
+
+class AuthUser(PydanticModel):
+    """The info needed for logging in"""
+    username: str
+    password: str
 
 
 class UserCreate(UserBase):
