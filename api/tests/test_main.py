@@ -32,7 +32,7 @@ client = TestClient(app)
 def log_in(username: str, password: str):
     r = client.post(
         "/login",
-        data={"username": username, "password": password}
+        json={"username": username, "password": password}
     )
 
     data = r.json()
@@ -389,12 +389,12 @@ def test_update_user_password():
 
     r = client.post(
         "/login",
-        data={"username": "new_username", "password": "12345"}
+        json={"username": "new_username", "password": "12345"}
     )
     assert r.status_code == 401
     r = client.post(
         "/login",
-        data={"username": "new_username", "password": "54321"}
+        json={"username": "new_username", "password": "54321"}
     )
     assert r.status_code == 200
 

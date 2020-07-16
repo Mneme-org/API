@@ -1,4 +1,4 @@
-aiosqlite==0.14.0
+aiosqlite==0.14.1
 astroid==2.4.2
 asynctest==0.13.0
 attrs==19.3.0
@@ -23,7 +23,7 @@ pluggy==0.13.1
 py==1.9.0
 pycodestyle==2.6.0
 pycparser==2.20
-pydantic==1.5.1
+pydantic==1.6
 PyJWT==1.7.1
 pylint==2.5.3
 pyparsing==2.4.7
