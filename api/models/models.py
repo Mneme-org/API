@@ -6,6 +6,9 @@ from tortoise.models import Model
 class User(Model):
     id = UUIDField(pk=True, index=True)
 
+    # 0 == Free, 10 == Premium
+    tier = IntField(default=0)
+
     username = CharField(max_length=255, unique=True, index=True)
     hashed_password = TextField(null=False)
 

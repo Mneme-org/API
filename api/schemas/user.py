@@ -5,6 +5,8 @@ from . import Journal
 
 
 class UserBase(PydanticModel):
+    tier: int = 0 # 0 == free, 10 == premium
+
     encrypted: bool = False
     username: str
     # This is only needed if the instance is private, otherwise there are no admins
@@ -37,4 +39,5 @@ class UserPassword(PydanticModel):
 
 
 class PubUser(UserBase):
+    """So the journals of a user aren't shown when he is not logged in"""
     id: int
