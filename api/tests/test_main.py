@@ -41,7 +41,7 @@ def log_in(username: str, password: str):
 
 def test_create_user():
     r = client.post(
-        "/users/",
+        "/users",
         json={"username": "test1", "password": "12345", "encrypted": True}
     )
     assert r.status_code == 401
@@ -50,7 +50,7 @@ def test_create_user():
     token = log_in("admin", "12345")
 
     r = client.post(
-        "/users/",
+        "/users",
         json={"username": "test1", "password": "12345", "encrypted": True},
         headers={"Authorization": token},
     )
@@ -65,7 +65,7 @@ def test_create_user():
     user_id = data["id"]
 
     r = client.get(
-        "/users/"
+        "/users"
     )
     assert r.status_code == 200
     assert r.text is not None
@@ -77,7 +77,7 @@ def test_create_jrnl():
     token = log_in("test1", "12345")
 
     r = client.post(
-        "/journals/",
+        "/journals",
         headers={"Authorization": token},
         json={
             "name": "journal_1"
@@ -90,7 +90,7 @@ def test_create_jrnl():
     assert data["entries"] == []
 
     client.post(
-        "/journals/",
+        "/journals",
         headers={"Authorization": token},
         json={
             "name": "journal_2"
@@ -102,7 +102,7 @@ def test_read_journals():
     token = log_in("test1", "12345")
 
     r = client.get(
-        "/journals/",
+        "/journals",
         headers={"Authorization": token},
     )
 
@@ -114,7 +114,7 @@ def test_read_journals():
 def create_entries(token: str):
     """Used by test_find_entries"""
     client.post(
-        "/journals/journal_1/entries/",
+        "/journals/journal_1/entries",
         headers={"Authorization": token},
         json={
             "short": "entry_2",
@@ -134,7 +134,7 @@ def create_entries(token: str):
     )
 
     client.post(
-        "/journals/journal_2/entries/",
+        "/journals/journal_2/entries",
         headers={"Authorization": token},
         json={
             "short": "entry_3",
@@ -172,7 +172,7 @@ def test_create_entry_with_long():
     token = log_in("test1", "12345")
 
     r = client.post(
-        "/journals/journal_1/entries/",
+        "/journals/journal_1/entries",
         headers={"Authorization": token},
         json={
             "short": "entry",
@@ -194,7 +194,7 @@ def test_create_entry_with_keyword():
     token = log_in("test1", "12345")
 
     r = client.post(
-        "/journals/journal_1/entries/",
+        "/journals/journal_1/entries",
         headers={"Authorization": token},
         json={
             "short": "entry_1",
@@ -254,7 +254,7 @@ def test_update_entry():
     create_entries(token)
 
     # Select and update a random entry
-    r = client.get("/journals/", headers={"Authorization": token})
+    r = client.get("/journals", headers={"Authorization": token})
     data = r.json()
     jrnl = random.choice(data)
     entry = random.choice(jrnl["entries"])
@@ -291,7 +291,7 @@ def test_delete_entry():
     token = log_in("test1", "12345")
 
     # Select and delete a random entry
-    r = client.get("/journals/", headers={"Authorization": token})
+    r = client.get("/journals", headers={"Authorization": token})
     data = r.json()
     jrnl = random.choice(data)
     entry = random.choice(jrnl["entries"])
@@ -316,7 +316,7 @@ def test_delete_entry():
 def test_update_journal():
     token = log_in("test1", "12345")
     r = client.put(
-        "/journals/journal_1/?new_name=some+name",
+        "/journals/journal_1?new_name=some+name",
         headers={"Authorization": token}
     )
 
@@ -325,13 +325,13 @@ def test_update_journal():
     assert data["name"] == "some name"
 
     r = client.get(
-        "/journals/some%20name/",
+        "/journals/some%20name",
         headers={"Authorization": token}
     )
     assert r.status_code == 200
 
     r = client.get(
-        "/journals/journal_1/",
+        "/journals/journal_1",
         headers={"Authorization": token}
     )
     assert r.status_code == 404
@@ -340,7 +340,7 @@ def test_update_journal():
 def test_delete_journal():
     token = log_in("test1", "12345")
     r = client.delete(
-        "/journals/some%20name/?now=true",
+        "/journals/some%20name?now=true",
         headers={"Authorization": token}
     )
     assert r.status_code == 204
@@ -355,7 +355,7 @@ def test_delete_journal():
 def test_update_user():
     token = log_in("test1", "12345")
     r = client.put(
-        "/users/?new_username=new_username&encrypted=0",
+        "/users?new_username=new_username&encrypted=0",
         headers={"Authorization": token},
     )
 
@@ -364,7 +364,7 @@ def test_update_user():
     assert data['username'] == "new_username"
     assert data['encrypted'] is False
 
-    r = client.get("/users/")
+    r = client.get("/users")
     assert r.status_code == 200
     data = r.json()
     assert len(data) == 2
@@ -402,7 +402,7 @@ def test_update_user_password():
 def test_delete_user():
     token = log_in("admin", "12345")
     r = client.post(
-        "/users/",
+        "/users",
         json={"username": "test2", "password": "12345"},
         headers={"Authorization": token}
     )
@@ -411,13 +411,13 @@ def test_delete_user():
     token = log_in("test2", "12345")
 
     r = client.delete(
-        "/users/",
+        "/users",
         headers={"Authorization": token}
     )
     assert r.status_code == 204
 
     r = client.get(
-        "/users/"
+        "/users"
     )
     assert r.status_code == 200
     data = r.json()

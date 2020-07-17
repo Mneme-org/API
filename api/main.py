@@ -25,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup():
     await Tortoise.init(
@@ -72,7 +73,7 @@ async def create_user_pub(*, user: schemas.UserCreate):
         return await crud.create_user(user=user)
 
 
-@app.post("/users/", response_model=schemas.User, status_code=201, name="Create User")
+@app.post("/users", response_model=schemas.User, status_code=201, name="Create User")
 async def create_user(*, user: schemas.UserCreate, cur_user: models.User = Depends(get_current_user)):
     """This is the endpoint used if the instance is private so only an admin can create accounts."""
     if not cur_user.admin:
@@ -85,19 +86,19 @@ async def create_user(*, user: schemas.UserCreate, cur_user: models.User = Depen
         return await crud.create_user(user=user)
 
 
-@app.get("/users/", response_model=List[schemas.PubUser], name="Fetch Users")
+@app.get("/users", response_model=List[schemas.PubUser], name="Fetch Users")
 async def read_users(skip: int = 0, limit: int = 100):
     users = await crud.get_users(skip=skip, limit=limit)
     return users
 
 
-@app.delete("/users/", status_code=204)
+@app.delete("/users", status_code=204)
 async def delete_user(*, user: models.User = Depends(get_current_user)):
     """Delete the current user and all his data. This is action is irreversible."""
     await crud.delete_user(user.id)
 
 
-@app.put("/users/", response_model=schemas.User)
+@app.put("/users", response_model=schemas.User)
 async def update_user(*, user: models.User = Depends(get_current_user),
                       new_username: str = None, encrypted: bool = False):
     if new_username is encrypted is None:
@@ -126,7 +127,7 @@ async def update_password(*, user: models.User = Depends(get_current_user), user
         raise HTTPException(status_code=400, detail="Wrong password.")
 
 
-@app.post('/journals/', response_model=schemas.Journal, status_code=201)
+@app.post('/journals', response_model=schemas.Journal, status_code=201)
 async def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depends(get_current_user)):
     if config.instance is InstanceType.COMMERCIAL and user.tier == 0:
         # free tier
@@ -141,30 +142,34 @@ async def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depend
         return await crud.create_journal(user.id, jrnl)
 
 
-@app.get("/journals/{jrnl_name}/", response_model=schemas.Journal, name="Fetch Journal")
-async def read_journal(jrnl_name: str, user: models.User = Depends(get_current_user), deleted: bool = False):
-    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower(), deleted=deleted)
-    if db_jrnl is None:
-        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+@app.get("/journals/entries", response_model=List[schemas.Entry], name="Find entries")
+async def find_entry(*, user: models.User = Depends(get_current_user),
+                     params: schemas.Params = Depends(None), keywords: List[str] = Query(...), deleted: bool = False):
+    """Method parameter is either 'and', or 'or' and it translates to whether it should look for entries
+       that have all the keywords, or at least one of them"""
+    if params.date_min is None:
+        date_min = None
     else:
-        return db_jrnl
+        date_min = parse_date(params.date_min)
+    if params.date_max is None:
+        date_max = None
+    else:
+        date_max = parse_date(params.date_max)
 
+    if params.jrnl_name is not None:
+        db_jrnl = await crud.get_jrnl_by_name(user.id, params.jrnl_name, deleted=deleted)
+        if db_jrnl is None:
+            raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+        else:
+            jrnl_id = db_jrnl.id
+    else:
+        jrnl_id = None
 
-@app.get("/journals/", response_model=List[schemas.Journal], name="Fetch Journals")
-async def read_journals(skip: int = 0, limit: int = 100,
-                        user: models.User = Depends(get_current_user), deleted: bool = False):
-    jrnls = await crud.get_journals_for(user, skip=skip, limit=limit, deleted=deleted)
-    return jrnls
-
-
-@app.delete("/journals/{jrnl_name}/", status_code=204)
-async def delete_journal(*, user: models.User = Depends(get_current_user), jrnl_name: str,
-                         now: bool = False, deleted: bool = False):
-    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower(), deleted=deleted)
-    if db_jrnl is None:
-        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
-
-    await crud.delete_journal(db_jrnl, now)
+    if params.method in ["or", "and"]:
+        # We pass date_min and date_max because now they are datetime objects, not strings
+        return await crud.get_entries(user.id, params, keywords, date_min, date_max, jrnl_id, deleted=deleted)
+    else:
+        raise HTTPException(status_code=400, detail="Method parameter can only be 'and' or 'or'.")
 
 
 @app.post("/journals/revive", response_model=schemas.Journal)
@@ -185,7 +190,33 @@ async def revive_journal(jrnl_id: int, new_name: Optional[str] = None, user: mod
         return await crud.undelete_journal(deleted_jrnl, new_name)
 
 
-@app.put("/journals/{jrnl_name}/", response_model=schemas.Journal)
+@app.get("/journals/{jrnl_name}", response_model=schemas.Journal, name="Fetch Journal")
+async def read_journal(jrnl_name: str, user: models.User = Depends(get_current_user), deleted: bool = False):
+    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower(), deleted=deleted)
+    if db_jrnl is None:
+        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+    else:
+        return db_jrnl
+
+
+@app.get("/journals", response_model=List[schemas.Journal], name="Fetch Journals")
+async def read_journals(skip: int = 0, limit: int = 100,
+                        user: models.User = Depends(get_current_user), deleted: bool = False):
+    jrnls = await crud.get_journals_for(user, skip=skip, limit=limit, deleted=deleted)
+    return jrnls
+
+
+@app.delete("/journals/{jrnl_name}", status_code=204)
+async def delete_journal(*, user: models.User = Depends(get_current_user), jrnl_name: str,
+                         now: bool = False, deleted: bool = False):
+    db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower(), deleted=deleted)
+    if db_jrnl is None:
+        raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
+
+    await crud.delete_journal(db_jrnl, now)
+
+
+@app.put("/journals/{jrnl_name}", response_model=schemas.Journal)
 async def update_journal(*, user: models.User = Depends(get_current_user), jrnl_name: str, new_name: str):
     # Check if new_name exists as a journal for the user
     db_jrnl = await crud.get_jrnl_by_name(user.id, new_name.lower())
@@ -200,7 +231,7 @@ async def update_journal(*, user: models.User = Depends(get_current_user), jrnl_
     return await crud.update_journal(db_jrnl, new_name)
 
 
-@app.post("/journals/{jrnl_name}/entries/", response_model=schemas.Entry, status_code=201)
+@app.post("/journals/{jrnl_name}/entries", response_model=schemas.Entry, status_code=201)
 async def create_entry(*, jrnl_name: str, user: models.User = Depends(get_current_user), entry: schemas.EntryCreate):
     db_jrnl = await crud.get_jrnl_by_name(user.id, jrnl_name.lower())
     if db_jrnl is None:
@@ -283,35 +314,6 @@ async def update_entry(*, user: models.User = Depends(get_current_user), jrnl_na
 
     return await crud.update_entry(updated_entry, entry_id)
 
-
-@app.get("/journals/entries", response_model=List[schemas.Entry], name="Find entries")
-async def find_entry(*, user: models.User = Depends(get_current_user),
-                     params: schemas.Params = Depends(None), keywords: List[str] = Query(...), deleted: bool = False):
-    """Method parameter is either 'and', or 'or' and it translates to whether it should look for entries
-       that have all the keywords, or at least one of them"""
-    if params.date_min is None:
-        date_min = None
-    else:
-        date_min = parse_date(params.date_min)
-    if params.date_max is None:
-        date_max = None
-    else:
-        date_max = parse_date(params.date_max)
-
-    if params.jrnl_name is not None:
-        db_jrnl = await crud.get_jrnl_by_name(user.id, params.jrnl_name, deleted=deleted)
-        if db_jrnl is None:
-            raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
-        else:
-            jrnl_id = db_jrnl.id
-    else:
-        jrnl_id = None
-
-    if params.method in ["or", "and"]:
-        # We pass date_min and date_max because now they are datetime objects, not strings
-        return await crud.get_entries(user.id, params, keywords, date_min, date_max, jrnl_id, deleted=deleted)
-    else:
-        raise HTTPException(status_code=400, detail="Method parameter can only be 'and' or 'or'.")
 
 
 @app.post("/backup", status_code=204)
