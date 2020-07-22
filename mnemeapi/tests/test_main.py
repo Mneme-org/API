@@ -5,9 +5,9 @@ from fastapi.testclient import TestClient
 import pytest
 from tortoise.contrib.test import finalizer, initializer
 
-from api import app
-from api.crud import create_user
-from api.schemas import UserCreate
+from mnemeapi import app
+from mnemeapi.crud import create_user
+from mnemeapi.schemas import UserCreate
 
 loop = asyncio.get_event_loop()
 

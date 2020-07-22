@@ -1,8 +1,8 @@
 from typing import Optional
 import configparser
 
-from api.schemas import UserCreate
-from api.crud import create_user, get_user_by_username
+from mnemeapi.schemas import UserCreate
+from mnemeapi.crud import create_user, get_user_by_username
 
 from . import Singleton
 from . import InstanceType

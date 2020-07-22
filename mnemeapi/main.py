@@ -30,7 +30,7 @@ app.add_middleware(
 async def startup():
     await Tortoise.init(
         db_url=config.db_url,
-        modules={"models": ["api.models.models"]}
+        modules={"models": ["mnemeapi.models.models"]}
     )
     await Tortoise.generate_schemas()
     await config.create_user()
@@ -62,7 +62,7 @@ async def token(auth_data: schemas.AuthUser):
 
 @app.post("/users/pub", response_model=schemas.User, status_code=201, name="Create User")
 async def create_user_pub(*, user: schemas.UserCreate):
-    """This is the endpoint used if the instance is public so anyone can create an account."""
+    """This is the endpoint used if the instance is public or commercial so anyone can create an account."""
     if config.instance is InstanceType.PRIVATE:
         raise HTTPException(status_code=400, detail="The instance is private.")
 
@@ -313,7 +313,6 @@ async def update_entry(*, user: models.User = Depends(get_current_user), jrnl_na
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
     return await crud.update_entry(updated_entry, entry_id)
-
 
 
 @app.post("/backup", status_code=204)

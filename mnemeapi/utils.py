@@ -83,7 +83,7 @@ async def clean_db() -> None:
 
 async def clean_backups() -> None:
     """Clean backups older than two weeks old"""
-    backups_dir = Path("./api/backups")
+    backups_dir = Path("./mnemeapi/backups")
     backups_dir.mkdir(exist_ok=True)
 
     two_weeks = HOUR * 24 * 7 * 2
@@ -108,7 +108,7 @@ async def clean_backups() -> None:
 
 async def auto_backup() -> None:
     """Create a backup of the database every 24 hours"""
-    backups_dir = Path("./api/backups")
+    backups_dir = Path("./mnemeapi/backups")
     backups_dir.mkdir(exist_ok=True)
 
     while True:

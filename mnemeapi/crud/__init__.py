@@ -15,12 +15,12 @@ from .users import get_user_by_id, get_user_by_username, get_users, create_user,
 
 async def backup() -> None:
     """Backup the database"""
-    backups_dir = Path("./api/backups")
+    backups_dir = Path("./mnemeapi/backups")
     backups_dir.mkdir(exist_ok=True)
 
     now = int(time.time())
     client = Tortoise.get_connection("default")
 
-    async with aiosqlite.connect(f"./api/backups/{now}.db") as dest:
+    async with aiosqlite.connect(f"./mnemeapi/backups/{now}.db") as dest:
         async with client.acquire_connection() as conn:
             await conn.backup(target=dest, pages=5)
