@@ -19,7 +19,7 @@ jobs:
         - pip install poetry
         - poetry install -v
       script:
-        - pylint api
+        - pylint mnemeapi
 
     - stage: test
       install:
