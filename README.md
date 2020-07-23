@@ -26,7 +26,7 @@ $ cp example_config.ini config.ini
 # Edit config.ini as needed 
 
 $ pip install -r requirements.txt
-$ python ./mnemeapi.py
+$ python ./mneme_api.py
 ```
  
  ## Special Thanks
