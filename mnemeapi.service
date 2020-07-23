@@ -1,5 +1,4 @@
-# An example service file for a systemd that you can put in /etc/systemd/system/.
-# This assumes you have installed all the dependencies using pip and not something else, like poetry
+# An example service file for systemd that you can put in /etc/systemd/system/
 
 [Unit]
 Description=mneme api
@@ -17,7 +16,7 @@ WorkingDirectory=/PATH/TO/MNEME-API
 # Path to python usually is /usr/bin/python3 but you can find out by running
 # $ which python3
 # If the executable name is "python" then use that instead of "python3"
-ExecStart=/PATH/TO/PYTHON /PATH/TO/MNEME-API/run.py
+ExecStart=/PATH/TO/PYTHON /PATH/TO/MNEME-API/mneme_api.py
 
 
 KillMode=process

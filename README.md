@@ -25,13 +25,8 @@ $ cd mneme-api
 $ cp example_config.ini config.ini
 # Edit config.ini as needed 
 
-# You can either install with poetry:
-$ poetry install
-$ poetry run python run.py
-
-# Or if you don't have/want poetry you can use pip:
 $ pip install -r requirements.txt
-$ python run.py
+$ python ./mnemeapi.py
 ```
  
  ## Special Thanks
