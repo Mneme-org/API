@@ -5,6 +5,7 @@ Description=mneme api
 After=network.target
 
 [Service]
+Environment=PATH=/home/YOUR_USER_NAME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Type=simple
 
 # Your username and group
