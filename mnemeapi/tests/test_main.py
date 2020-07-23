@@ -16,7 +16,7 @@ loop = asyncio.get_event_loop()
 def init_db(request):
     db_url = "sqlite://:memory:"
     initializer(
-        ["api.models.models"],
+        ["mnemeapi.models.models"],
         db_url=db_url
     )
     # Create the admin user since it's a private instance
