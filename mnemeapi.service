@@ -18,8 +18,8 @@ WorkingDirectory=/PATH/TO/MNEME-API
 # If the executable name is "python" then use that instead of "python3"
 ExecStart=/PATH/TO/PYTHON /PATH/TO/MNEME-API/mneme_api.py
 
-
-KillMode=process
+KillSignal=SIGKILL
+RestartKillSignal=SIGKILL
 Restart=on-failure
 
 [Install]
