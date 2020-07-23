@@ -1,9 +1,9 @@
-# mneme API [![Build Status](https://travis-ci.com/Mneme-org/API.svg?branch=master)](https://travis-ci.com/Mneme-org/API)
+# mneme API [![Build Status](https://travis-ci.com/Mneme-org/API.svg?branch=master)](https://travis-ci.com/Mneme-org/API) [![Discord](https://img.shields.io/badge/discord-chat-MH2e2eb.svg?style=flat-square)](https://discord.gg/36azzG7)
+
 
 Written in [Python](https://www.python.org/) and [FastAPI](https://fastapi.tiangolo.com/), the API is at the heart of every mneme setup, and lives in your server to manage your journals, entries, and user. The front-end apps communicate with this API, making it a seamless experience for the end user. Minimum Python version is 3.7.
 
 The API can easily be used, so you could even make your own front-end app, or submit pull-requests or issues to ours!
-
 
 ## Road Map:
 * [x] Create, delete, and update users
