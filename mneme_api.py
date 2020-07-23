@@ -12,7 +12,12 @@ stop_file = os.path.join(dir_name, "mnemeapi", "mnemeapi.stop")
 
 
 def start_api():
-    script = ["uvicorn", "mnemeapi:app", "--host", config.host, "--port", str(config.port), "--log-level", "info"]
+    if sys.platform.startswith("win"):
+        uvicorn_path = os.popen("where uvicorn").read().rstrip("\n")
+    else:
+        uvicorn_path = os.popen("which uvicorn").read().rstrip("\n")
+
+    script = [uvicorn_path, "mnemeapi:app", "--host", config.host, "--port", str(config.port), "--log-level", "info"]
     _api = subprocess.Popen(script, stdout=None, stderr=None, stdin=subprocess.DEVNULL)
     atexit.register(_api.terminate)
     return _api
@@ -56,4 +61,7 @@ if __name__ == "__main__":
 
     while True:
         check_status()
-        time.sleep(5)
+        try:
+            time.sleep(5)
+        except Exception:
+            sys.exit(0)
