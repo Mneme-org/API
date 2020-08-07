@@ -17,7 +17,14 @@ def start_api():
     else:
         uvicorn_path = os.popen("which uvicorn").read().rstrip("\n")
 
-    script = [uvicorn_path, "mnemeapi:app", "--host", config.host, "--port", str(config.port), "--log-level", "info"]
+    script = [
+        uvicorn_path,
+        "mnemeapi:app",
+        "--host", config.host,
+        "--port", str(config.port),
+        "--log-level", "info",
+        "--proxy-headers"
+    ]
     _api = subprocess.Popen(script, stdout=None, stderr=None, stdin=subprocess.DEVNULL)
     atexit.register(_api.terminate)
     return _api
