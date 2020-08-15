@@ -3,6 +3,7 @@ import sys
 import time
 import atexit
 import subprocess
+from contextlib import suppress
 
 from mnemeapi import config
 
@@ -34,7 +35,7 @@ def check_status():
     if os.path.exists(stop_file):
         try:
             os.remove(stop_file)
-        except Exception:
+        except OSError:
             print("Unable to delete the stop file.")
         finally:
             print("mneme api stopped.")
@@ -43,7 +44,7 @@ def check_status():
     if os.path.exists(restart_file):
         try:
             os.remove(restart_file)
-        except Exception:
+        except OSError:
             print("Unable to delete the restart file.")
         finally:
             print("mneme api is restarting..")
@@ -56,19 +57,13 @@ if __name__ == "__main__":
     api = start_api()
 
     # Delete old stop and restart files
-    try:
+    with suppress(OSError):
         os.remove(stop_file)
-    except Exception:
-        pass
-
-    try:
         os.remove(restart_file)
-    except Exception:
-        pass
 
     while True:
         check_status()
         try:
             time.sleep(5)
-        except Exception:
+        except (KeyboardInterrupt, SystemExit, ChildProcessError):
             sys.exit(0)
