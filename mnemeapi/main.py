@@ -377,17 +377,18 @@ async def update_entry(*, user: models.User = Depends(get_current_user), jrnl_na
     if entry_db is None or entry_db.journal_id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
+    new_entry = await crud.update_entry(updated_entry, entry_id)
     data = {
         "id": entry_id,
-        "journal_id": updated_entry.journal_id,
-        "short": updated_entry.short,
-        "long": updated_entry.long,
-        "date": updated_entry.date,
-        "keywords": [{"id": kw.id, "word": kw.word} for kw in updated_entry.keywords]
+        "journal_id": new_entry.journal_id,
+        "short": new_entry.short,
+        "long": new_entry.long,
+        "date": new_entry.date,
+        "keywords": [{"id": kw.id, "word": kw.word} for kw in new_entry.keywords]
     }
     await add_to_queue(user.id, event="update", changed_type="entry", data=data)
 
-    return await crud.update_entry(updated_entry, entry_id)
+    return new_entry
 
 
 @app.post("/backup", status_code=204)
