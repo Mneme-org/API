@@ -1,3 +1,6 @@
+from typing import Dict
+from asyncio import Queue
+
 from fastapi.security import HTTPBasic, OAuth2PasswordBearer
 from passlib.context import CryptContext
 
@@ -13,4 +16,6 @@ from .classes import Configuration  # pylint: disable=wrong-import-position
 config = Configuration("config.ini")
 config.load()
 
+# user id -> Queue for pushing events to users
+queues: Dict[str, Queue] = {}
 from .main import app  # pylint: disable=wrong-import-position

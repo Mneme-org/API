@@ -1,15 +1,18 @@
 import asyncio
+from asyncio import Queue
 from datetime import timedelta
 from typing import List, Optional
 
 from tortoise import Tortoise
-from fastapi import FastAPI, Query
 from fastapi import Depends, HTTPException
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sse_starlette.sse import EventSourceResponse
 
 from . import ACCESS_TOKEN_EXPIRE_MINUTES
-from . import models, schemas, crud, config
-from .utils import get_current_user, auth_user, generate_auth_token, parse_date, clean_db, clean_backups, auto_backup
+from . import models, schemas, crud, config, queues
+from .utils import get_current_user, auth_user, generate_auth_token, parse_date, clean_db, clean_backups, auto_backup, \
+    updates_generator, add_to_queue
 from .classes import InstanceType
 
 app = FastAPI(
@@ -58,6 +61,16 @@ async def token(auth_data: schemas.AuthUser):
 
     encoded_token = generate_auth_token(user.id, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": encoded_token}
+
+
+@app.get("/subscribe")
+async def subscribe(*, user: models.User = Depends(get_current_user), request: Request):
+    """Subscribe the user to receive updates from other clients"""
+    if user.id not in queues:
+        queues[user.id] = Queue()
+
+    updates = updates_generator(user.id, request)
+    return EventSourceResponse(updates)
 
 
 @app.post("/users/pub", response_model=schemas.User, status_code=201, name="Create User")
@@ -139,7 +152,13 @@ async def create_journal(jrnl: schemas.JournalCreate, user: models.User = Depend
     if db_jrnl:
         raise HTTPException(status_code=400, detail="This journal already exists for this user")
     else:
-        return await crud.create_journal(user.id, jrnl)
+        jrnl = await crud.create_journal(user.id, jrnl)
+        data = {
+            "id": jrnl.id,
+            "name": jrnl.name,
+        }
+        await add_to_queue(user.id, event="create", changed_type="journal", data=data)
+        return jrnl
 
 
 @app.get("/journals/entries", response_model=List[schemas.Entry], name="Find entries")
@@ -187,6 +206,11 @@ async def revive_journal(jrnl_id: int, new_name: Optional[str] = None, user: mod
         detail = "A journal with the new name already exists, please give another."
         raise HTTPException(status_code=400, detail=detail)
     else:
+        data = {
+            "id": deleted_jrnl.id,
+            "name": new_name,
+        }
+        await add_to_queue(user.id, event="create", changed_type="journal", data=data)
         return await crud.undelete_journal(deleted_jrnl, new_name)
 
 
@@ -213,6 +237,12 @@ async def delete_journal(*, user: models.User = Depends(get_current_user), jrnl_
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
+    data = {
+        "id": db_jrnl.id,
+        "name": db_jrnl.name,
+    }
+    await add_to_queue(user.id, event="delete", changed_type="journal", data=data)
+
     await crud.delete_journal(db_jrnl, now)
 
 
@@ -228,6 +258,12 @@ async def update_journal(*, user: models.User = Depends(get_current_user), jrnl_
     if db_jrnl is None:
         raise HTTPException(status_code=404, detail="This journal doesn't exists for this user")
 
+    data = {
+        "id": db_jrnl.id,
+        "name": new_name,
+    }
+    await add_to_queue(user.id, event="update", changed_type="journal", data=data)
+
     return await crud.update_journal(db_jrnl, new_name)
 
 
@@ -240,7 +276,19 @@ async def create_entry(*, jrnl_name: str, user: models.User = Depends(get_curren
     if entry.short in [e.short for e in db_jrnl.entries]:
         raise HTTPException(status_code=400, detail="This entry already exists in this journal")
 
-    return await crud.create_entry(entry, db_jrnl.id)
+    new_entry = await crud.create_entry(entry, db_jrnl.id)
+
+    data = {
+        "id": new_entry.id,
+        "journal_id": new_entry.journal_id,
+        "short": new_entry.short,
+        "long": new_entry.long,
+        "date": new_entry.date,
+        "keywords": [{"id": kw.id, "word": kw.word} for kw in new_entry.keywords]
+    }
+    await add_to_queue(user.id, event="create", changed_type="entry", data=data)
+
+    return new_entry
 
 
 @app.get("/journals/{jrnl_name}/{entry_id}", response_model=schemas.Entry)
@@ -268,6 +316,13 @@ async def delete_entry(*, user: models.User = Depends(get_current_user),
     if entry_db is None or entry_db.journal_id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
+    data = {
+        "id": entry_db.id,
+        "journal_id": entry_db.journal_id,
+        "short": entry_db.short,
+    }
+    await add_to_queue(user.id, event="delete", changed_type="entry", data=data)
+
     await crud.delete_entry(entry_db, now)
 
 
@@ -289,6 +344,16 @@ async def revive_entry(entry_id: int, new_short: Optional[str] = None, user: mod
         if await crud.get_jrnl_by_name(user.id, db_jrnl.name_lower, deleted=False):
             raise HTTPException(status_code=400, detail="A new journal with its name exists.")
         await crud.undelete_journal(db_jrnl)
+
+    data = {
+        "id": db_entry.id,
+        "journal_id": db_entry.journal_id,
+        "short": short,
+        "long": db_entry.long,
+        "date": db_entry.date,
+        "keywords": [{"id": kw.id, "word": kw.word} for kw in db_entry.keywords]
+    }
+    await add_to_queue(user.id, event="create", changed_type="entry", data=data)
 
     return await crud.undelete_entry(db_entry, short)
 
@@ -312,7 +377,18 @@ async def update_entry(*, user: models.User = Depends(get_current_user), jrnl_na
     if entry_db is None or entry_db.journal_id != db_jrnl.id:
         raise HTTPException(status_code=404, detail="There is no entry with that id in that journal")
 
-    return await crud.update_entry(updated_entry, entry_id)
+    new_entry = await crud.update_entry(updated_entry, entry_id)
+    data = {
+        "id": entry_id,
+        "journal_id": new_entry.journal_id,
+        "short": new_entry.short,
+        "long": new_entry.long,
+        "date": new_entry.date,
+        "keywords": [{"id": kw.id, "word": kw.word} for kw in new_entry.keywords]
+    }
+    await add_to_queue(user.id, event="update", changed_type="entry", data=data)
+
+    return new_entry
 
 
 @app.post("/backup", status_code=204)

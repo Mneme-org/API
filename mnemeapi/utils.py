@@ -3,12 +3,13 @@ import time
 import asyncio
 from pathlib import Path
 from datetime import datetime, timedelta, date
+from typing import Optional, Dict
 
 import jwt
 from jwt.exceptions import PyJWTError
-from fastapi import Depends, status, HTTPException
+from fastapi import Depends, status, HTTPException, Request
 
-from . import crud, schemas, models, config
+from . import crud, schemas, models, config, queues
 from . import pwd_context, ALGORITHM, oauth2_scheme
 
 
@@ -114,3 +115,37 @@ async def auto_backup() -> None:
     while True:
         await crud.backup()
         await asyncio.sleep(HOUR * 24)
+
+
+async def add_to_queue(user_id: str, event: str, changed_type: str, data: Optional[Dict] = None):
+    """
+    Add an item to the queue to update the user
+        `event` is "edit", "create" or "delete"
+        `changed_type` is either "journal" or "entry"
+        `data` is the content that got updated or created
+    """
+    queue = queues.get(user_id)
+    if queue is None:
+        # The user hasn't subscribe with any device
+        return
+
+    update = {
+        "event": event,
+        "data": {
+            "type": changed_type,
+            "data": data
+        }
+    }
+    await queue.put(update)
+
+
+async def updates_generator(user_id: str, request: Request):
+    # The user certainly has a queue because it gets created when they subscribe
+    queue = queues.get(user_id)
+    while True:
+        if await request.is_disconnected():
+            break
+
+        # No need sleep in the loop because await queue.get() will simply wait until there is something to get
+        update = await queue.get()
+        yield update

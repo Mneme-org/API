@@ -14,7 +14,7 @@ passlib = "^1.7.2"
 bcrypt = "^3.1.7"
 python-multipart = "^0.0.5"
 tortoise-orm = "^0.16.13"
-aiosqlite = "^0.14.0"
+sse-starlette = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
 asynctest = "^0.13"
@@ -27,7 +27,7 @@ requests = "^2.23"
 ignore = ["tests"]
 # Disable missing doc-strings,
 # Unnecessary "else" after "raise/return",
-disable = ["C0114", "C0115", "C0116", "R1705", "R1720", "W0511", "R0401", "R0902"]
+disable = ["C0114", "C0115", "C0116", "R1705", "R1720", "W0511", "R0401", "R0902", "W0707"]
 load-plugins = ["tortoise.contrib.pylint"]
 
 [tool.pylint.basic]
