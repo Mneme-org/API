@@ -1,3 +1,4 @@
+import secrets
 import asyncio
 from asyncio import Queue
 from datetime import timedelta
@@ -19,6 +20,7 @@ app = FastAPI(
     title="Mneme",
     description="A self-hosted multi-platform journal keeping app"
 )
+sub_keys = dict()
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,14 +65,29 @@ async def token(auth_data: schemas.AuthUser):
     return {"access_token": encoded_token}
 
 
-@app.get("/subscribe")
-async def subscribe(*, user: models.User = Depends(get_current_user), request: Request):
+@app.get("/subscribe/")
+async def subscribe(key: str, request: Request):
     """Subscribe the user to receive updates from other clients"""
-    if user.id not in queues:
-        queues[user.id] = Queue()
+    user_id = sub_keys.pop(key, None)
+    if user_id is None:
+        raise HTTPException(
+            status_code=401,
+            detail="You need to authorize in the /subscribe_auth endpoint first"
+        )
 
-    updates = updates_generator(user.id, request)
+    if user_id not in queues:
+        queues[user_id] = Queue()
+
+    updates = updates_generator(user_id, request)
     return EventSourceResponse(updates)
+
+
+@app.get("/subscribe_auth", response_model=schemas.Token)
+async def sub_auth(user: models.User = Depends(get_current_user)):
+    """Get a one time use key to be used in the /subscribe endpoint"""
+    key = secrets.token_urlsafe(16)
+    sub_keys[key] = user.id
+    return {"access_token": key}
 
 
 @app.post("/users/pub", response_model=schemas.User, status_code=201, name="Create User")
